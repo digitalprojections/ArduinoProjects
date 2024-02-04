@@ -16,14 +16,18 @@
 constexpr uint8_t RECV_PIN {9};
 constexpr uint8_t LED {12};
 
+uint16_t state = 0;
+uint16_t previousState = 0;
 
-//const uint32_t s1 = 1082110031;
-const uint16_t s1 = 0x40; //On Off
-const uint16_t s1 = 0x41; //Play/Stop
-const uint16_t s1 = 0x17; //Quick
-const uint16_t s1 = 0x13; //Slow
-const uint16_t s1 = 0x5D; //Right
-const uint16_t s1 = 0x5C; //Left
+const uint16_t onoffBtn = 0x40; //On Off
+const uint16_t playBtn = 0x41; //Play/Stop
+const uint16_t fasterBtn = 0x17; //Quick
+const uint16_t slowerBtn = 0x13; //Slow
+const uint16_t rightBtn = 0x5D; //Right
+const uint16_t leftBtn = 0x5C; //Left
+
+bool running = false;
+int speedDelay = 10;
 
 void setup() {
   // Sets the two pins as Outputs
@@ -40,52 +44,66 @@ void setup() {
   
 
   Serial.begin(9600);
-  BTSerial.begin(38400); // HC-05 default speed in AT command more
-
+ 
   IrReceiver.begin(RECV_PIN);
   Serial.print(F("Ready to receive IR signals at pin "));
   Serial.println(RECV_PIN);
 }
 void loop() {
-  digitalWrite(dirPin,HIGH); // Enables the motor to move in a particular direction
-  // Makes 200 pulses for making one full cycle rotation
-  for(int x = 0; x < 32000; x++) {
-    digitalWrite(stepPin,HIGH); 
-    delayMicroseconds(10);    // by changing this time delay between the steps we can change the rotation speed
-    digitalWrite(stepPin,LOW); 
-    delayMicroseconds(10); 
-  }
-  delay(1000); // One second delay
-  
-
-  digitalWrite(dirPin,LOW); //Changes the rotations direction
-  // Makes 400 pulses for making two full cycle rotation
-  for(int x = 0; x < 32000; x++) {
-    digitalWrite(stepPin,HIGH);
-    delayMicroseconds(10);
-    digitalWrite(stepPin,LOW);
-    delayMicroseconds(10);
-  }
-  delay(1000);
-
-     if (irReceive() == s1) {
-    digitalWrite(LED,!digitalRead(LED));
-    /*
-    switch (state)
-    {
-      case ON :
-        digitalWrite (LED, HIGH);
-        state = OFF;
+  state = irReceive();
+    if(state > 0 && previousState != state && (state != fasterBtn || state != slowerBtn))
+    {      
+      switch (state)
+      {
+        case onoffBtn :
+          digitalWrite (LED, !digitalRead(LED));
+          break;
+        case leftBtn :
+          leftDirection();
+          break;
+        case rightBtn:
+          rightDirection();
+          break;
+        case playBtn:
+          running = !running;          
+          break;
+        case fasterBtn:
+          speedDelay = speedDelay - 1;
+          break;
+        case slowerBtn:
+          speedDelay = speedDelay + 1;
         break;
-      case OFF :
-        digitalWrite (LED, LOW);
-        state = ON;
-        break;
+      }
+      Serial.print("speedDelay: " + speedDelay);
+      previousState = state;
     }
-    Serial.print(state);
-    */
+
+    if(running){
+      Run();
+    }
 }
 
+
+
+void rightDirection()
+{
+  digitalWrite(dirPin,HIGH); // Enables the motor to move in a particular direction
+}
+void leftDirection()
+{
+  digitalWrite(dirPin,LOW); // Enables the motor to move in a particular direction
+}
+
+void Run(){
+  if(true)
+  {    // Makes 200 pulses for making one full cycle rotation
+    
+      digitalWrite(stepPin,HIGH); 
+      delayMicroseconds(speedDelay);    // by changing this time delay between the steps we can change the rotation speed
+      digitalWrite(stepPin,LOW); 
+      delayMicroseconds(speedDelay); 
+      
+  }  
 }
 
 uint16_t irReceive() {
