@@ -8,6 +8,8 @@
  int rightBtn = 6;
  int inputNumber = -1;
 
+ bool gameOver = false;
+
  int numbers[16];
 
   // Draw a square around the number
@@ -59,54 +61,101 @@ void loop() {
 
   inputNumber = checkInput();  
   text = "";
+  bool legaMove = false;
 
   //only process, if the input is onw of the 4 buttons
-  if(inputNumber >= 0 )
+  if(gameOver && inputNumber >= 0)
   {
+    generateDistinctRandomNumbers();
+    drawSquareWithNumber();
+    gameOver = false;
+  }
+
+  if(inputNumber >= 0)
+  {
+    int zero = indexOf(0);  
+    Serial.println(zero);
     switch(inputNumber)
     {
       case 0://Left
-        LeftMove();
+        legaMove = LeftMove(zero);
       break;
       case 1://Up
-        UpMove();
+        legaMove = UpMove(zero);
       break;
       case 2://Down
-        DownMove();
+        legaMove = DownMove(zero);
       break;
       case 3://Right
-        RightMove();
+        legaMove = RightMove(zero);
       break;
       default:
       break;
     }
-    
-    drawSquareWithNumber();
+    if(legaMove){
+      drawSquareWithNumber();
+    }
+    else
+    {
+      //illegal move
+      tft.drawRect(0, 0, 240, 240, ST77XX_RED);
+      delay(500);
+      tft.drawRect(0, 0, 240, 240, ST77XX_WHITE);
+      delay(500);
+      tft.drawRect(0, 0, 240, 240, ST77XX_RED);
+      delay(500);
+      tft.drawRect(0, 0, 240, 240, ST77XX_ORANGE);      
+    }
+
     inputNumber = -1;
   }  
-  delay(500);
+  delay(300);
 }
 
-void LeftMove()
-{
-  int zero = indexOf(0);
-  if(zero >= 0 && zero / 4 > 0)
+//Left
+bool LeftMove(int zero)
+{  
+  if(zero < 15 && zero % 4 < 3)
   {
-    int oldZero = numbers[zero];
-    numbers[zero-1] = numbers[zero];
-    numbers[zero-1] = oldZero;
-    drawSquareWithNumber();    
+    numbers[zero] = numbers[zero+1];
+    numbers[zero+1] = 0;
+    return true;
   }
+  return false;
 }
-void UpMove(){
 
-}
-void DownMove(){
+//Right
+bool RightMove(int zero){  
   
+  if(zero > 0 && zero % 4 > 0)
+  {
+    numbers[zero] = numbers[zero-1];
+    numbers[zero-1] = 0;
+    return true;
+  }
+  return false;
 }
-void RightMove(){
-  
+//Upwards
+bool UpMove(int zero){
+  if(zero < 12)
+  {
+    numbers[zero] = numbers[zero + 4];
+    numbers[zero + 4] = 0;
+    return true;
+  }  
+  return false;
 }
+//Down
+bool DownMove(int zero){
+  if(zero > 3)
+  {
+    numbers[zero] = numbers[zero - 4];
+    numbers[zero - 4] = 0;
+    return true;
+  }
+  return false;
+}
+
 
 int indexOf(int value)
 {
@@ -136,7 +185,33 @@ void generateDistinctRandomNumbers() {
     } while (isNumberAlreadyInArray(randomNumber, i));
     numbers[i] = randomNumber;
   }
+
+  if(isNotSolvable())
+  {
+    Serial.println("retry");
+    //try another set
+    generateDistinctRandomNumbers();
+  }
 }
+
+bool isNotSolvable(){
+  
+  int invCount = 0;
+    for (int i = 0; i < 16 - 1; i++) {
+        for (int j = i + 1; j < 16; j++) {
+            if (numbers[j] != numbers[i] && numbers[i] > numbers[j])
+                invCount++;
+        }
+    }
+    if(invCount & 1)
+    {
+      return !indexOf(0) & 1;
+    }
+    else{
+      return indexOf(0) & 1;
+    }  
+}
+
 bool isNumberAlreadyInArray(int num, int endIndex) {
   for (int i = 0; i < endIndex; i++) {
     if (numbers[i] == num) {
@@ -145,6 +220,7 @@ bool isNumberAlreadyInArray(int num, int endIndex) {
   }
   return false; // Number is distinct
 }
+
 void drawSquareWithNumber()
 {
   tft.setTextWrap(false);
@@ -154,9 +230,9 @@ void drawSquareWithNumber()
     tft.setTextSize(4);
 
   int numIndex = 0;
-  for(int i=0; i<4; i++)
+  for(int j=0; j<4; j++)
   {
-    for(int j=0; j<4; j++)
+    for(int i=0; i<4; i++)
     {
       x = i * 60;
       y = j * 60;      
@@ -385,58 +461,18 @@ void tftPrintTest() {
   tft.setTextWrap(false);
   tft.fillScreen(ST77XX_BLACK);
   tft.setCursor(0, 30);
-  tft.setTextColor(ST77XX_RED);
-  tft.setTextSize(1);
-  tft.println("Hello World!");
-  tft.setTextColor(ST77XX_YELLOW);
-  tft.setTextSize(2);
-  tft.println("Hello World!");
-  tft.setTextColor(ST77XX_GREEN);
-  tft.setTextSize(3);
-  tft.println("Hello World!");
-  tft.setTextColor(ST77XX_BLUE);
+  tft.setTextColor(ST77XX_CYAN);
   tft.setTextSize(4);
-  tft.print(1234.567);
+  tft.println("15 Tile");
+  tft.println("Puzzle");
+  tft.println("Game");  
   delay(1500);
-  tft.setCursor(0, 0);
-  tft.fillScreen(ST77XX_BLACK);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.setTextSize(0);
-  tft.println("Hello World!");
-  tft.setTextSize(1);
-  tft.setTextColor(ST77XX_GREEN);
-  tft.print(p, 6);
-  tft.println(" Want pi?");
-  tft.println(" ");
-  tft.print(8675309, HEX); // print 8,675,309 out in HEX!
-  tft.println(" Print HEX!");
-  tft.println(" ");
-  tft.setTextColor(ST77XX_WHITE);
-  tft.println("Sketch has been");
-  tft.println("running for: ");
-  tft.setTextColor(ST77XX_MAGENTA);
-  tft.print(millis() / 1000);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.print(" seconds.");
 }
 
 void mediabuttons() {
-  // play
   tft.fillScreen(ST77XX_BLACK);
-  tft.fillRoundRect(25, 10, 78, 60, 8, ST77XX_WHITE);
-  tft.fillTriangle(42, 20, 42, 60, 90, 40, ST77XX_RED);
-  delay(500);
-  // pause
-  tft.fillRoundRect(25, 90, 78, 60, 8, ST77XX_WHITE);
-  tft.fillRoundRect(39, 98, 20, 45, 5, ST77XX_GREEN);
-  tft.fillRoundRect(69, 98, 20, 45, 5, ST77XX_GREEN);
-  delay(500);
-  // play color
-  tft.fillTriangle(42, 20, 42, 60, 90, 40, ST77XX_BLUE);
-  delay(50);
-  // pause color
-  tft.fillRoundRect(39, 98, 20, 45, 5, ST77XX_RED);
-  tft.fillRoundRect(69, 98, 20, 45, 5, ST77XX_RED);
-  // play color
-  tft.fillTriangle(42, 20, 42, 60, 90, 40, ST77XX_GREEN);
+  tft.setTextSize(2);
+  tft.setTextColor(ST77XX_CYAN);
+  tft.println("Press Any Button");
+  tft.println("To PLAY again");
 }
