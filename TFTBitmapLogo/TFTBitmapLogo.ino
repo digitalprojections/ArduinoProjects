@@ -2,10 +2,10 @@
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
 
-#define int leftBtn 6
-#define int upBtn 2
-#define int downBtn 7
-#define int rightBtn 4
+ int leftBtn = 6;
+ int upBtn = 2;
+ int downBtn = 7;
+ int rightBtn = 4;
 
 #define TFT_CS 10 // if your display has CS pin
 #define TFT_RST 9 // reset pin
