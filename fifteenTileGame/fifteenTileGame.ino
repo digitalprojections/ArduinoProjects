@@ -2,10 +2,21 @@
 #include <Adafruit_ST7789.h> // Hardware-specific library for ST7789
 #include <SPI.h>
 
-#define int leftBtn 6
-#define int upBtn 2
-#define int downBtn 7
-#define int rightBtn 4
+ int leftBtn = 4;
+ int upBtn = 7;
+ int downBtn = 2;
+ int rightBtn = 6;
+ int inputNumber = -1;
+
+ int numbers[16];
+
+  // Draw a square around the number
+  int x = 0; // Top-left corner X coordinate
+  int y = 0; // Top-left corner Y coordinate
+  int w = 60; // Width of the square
+  int h = 60; // Height of the square
+
+String text = "";
 
 #define TFT_CS 10 // if your display has CS pin
 #define TFT_RST 9 // reset pin
@@ -15,7 +26,6 @@
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-
 float p = 3.1415926;
 
 void setup(void) {
@@ -23,7 +33,7 @@ void setup(void) {
   Serial.print(F("Hello! ST77xx TFT Test"));
 
   // Use this initializer (uncomment) if using a 1.3" or 1.54" 240x240 TFT:
-  tft.init(240, 240, SPI_MODE3);           // Init ST7789 240x240
+  tft.init(240, 240, SPI_MODE2);           // Init ST7789 240x240
   tft.setRotation(2);
   
   // SPI speed defaults to SPI_DEFAULT_FREQ defined in the library, you can override it here
@@ -32,6 +42,169 @@ void setup(void) {
   //tft.setSPISpeed(40000000);
   Serial.println(F("Initialized"));
 
+  initializeButtons();
+
+  // tft print function!
+  tftPrintTest();
+  delay(2000);
+
+  //tft.print("No: ");
+  //tft.println(inputNumber);
+  generateDistinctRandomNumbers();
+  
+  drawSquareWithNumber();
+}
+
+void loop() {  
+
+  inputNumber = checkInput();  
+  text = "";
+
+  //only process, if the input is onw of the 4 buttons
+  if(inputNumber >= 0 )
+  {
+    switch(inputNumber)
+    {
+      case 0://Left
+        LeftMove();
+      break;
+      case 1://Up
+        UpMove();
+      break;
+      case 2://Down
+        DownMove();
+      break;
+      case 3://Right
+        RightMove();
+      break;
+      default:
+      break;
+    }
+    
+    drawSquareWithNumber();
+    inputNumber = -1;
+  }  
+  delay(500);
+}
+
+void LeftMove()
+{
+  int zero = indexOf(0);
+  if(zero / 4 > 0)
+  {
+    int oldZero = numbers[zero];
+    numbers[zero-1] = numbers[zero];
+    numbers[zero-1] = oldZero;
+    drawSquareWithNumber();    
+  }
+}
+void UpMove(){
+
+}
+void DownMove(){
+  
+}
+void RightMove(){
+  
+}
+
+int indexOf(int value)
+{
+  int foundIndex = -1; // Initialize with an invalid index
+  // Search for the target value
+  for (int i = 0; i < sizeof(numbers) / sizeof(numbers[0]); i++) {
+    if (numbers[i] == value) {
+      foundIndex = i; // Store the index where the value is found
+      break; // Exit the loop once found
+    }
+  }
+  return foundIndex;
+  /*
+  We declare an integer array numbers and initialize it with some values.
+  The targetValue is the value we want to find.
+  The loop iterates through the array elements and checks if each element matches the targetValue.
+  If found, we store the index in foundIndex.
+  If not found, foundIndex remains -1.
+  */
+}
+
+void generateDistinctRandomNumbers() {
+  for (int i = 0; i < 16; i++) {
+    int randomNumber;
+    do {
+      randomNumber = random(16); // Generate a random number between 0 and 15
+    } while (isNumberAlreadyInArray(randomNumber, i));
+    numbers[i] = randomNumber;
+  }
+}
+bool isNumberAlreadyInArray(int num, int endIndex) {
+  for (int i = 0; i < endIndex; i++) {
+    if (numbers[i] == num) {
+      return true; // Number already exists in the array
+    }
+  }
+  return false; // Number is distinct
+}
+void drawSquareWithNumber()
+{
+  tft.setTextWrap(false);
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setCursor(0, 30);
+    tft.setTextColor(ST77XX_GREEN);
+    tft.setTextSize(4);
+
+  int numIndex = 0;
+  for(int i=0; i<4; i++)
+  {
+    for(int j=0; j<4; j++)
+    {
+      x = i * 60;
+      y = j * 60;      
+      tft.drawRect(x, y, w, h, ST77XX_ORANGE);
+      tft.setCursor(x + 10, y + 10);
+      if(numbers[numIndex]>0)
+        {
+          tft.println(numbers[numIndex]);
+        } 
+      numIndex++;
+    }
+  }
+}
+
+int checkInput()
+{
+  if(digitalRead(leftBtn) == HIGH)
+  {
+    return 0;
+  }
+  else if(digitalRead(upBtn) == HIGH)
+  {   
+    return 1;
+  }
+  else if(digitalRead(downBtn) == HIGH)
+  {   
+    return 2;
+  }
+  else if(digitalRead(rightBtn) == HIGH)
+  {    
+    return 3;
+  }
+  else
+  {
+    return -1;
+  }
+}
+
+void initializeButtons()
+{
+  pinMode(leftBtn, OUTPUT);
+  pinMode(upBtn, OUTPUT);
+  pinMode(downBtn, OUTPUT);
+  pinMode(rightBtn, OUTPUT);
+}
+
+void endGame()
+{
   uint16_t time = millis();
   tft.fillScreen(ST77XX_BLACK);
   time = millis() - time;
@@ -41,12 +214,7 @@ void setup(void) {
 
   // large block of text
   tft.fillScreen(ST77XX_BLACK);
-  //testdrawtext("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur adipiscing ante sed nibh tincidunt feugiat. Maecenas enim massa, fringilla sed malesuada et, malesuada sit amet turpis. Sed porttitor neque ut ante pretium vitae malesuada nunc bibendum. Nullam aliquet ultrices massa eu hendrerit. Ut sed nisi lorem. In vestibulum purus a tortor imperdiet posuere. ", ST77XX_WHITE);
-  delay(1000);
-
-  // tft print function!
-  tftPrintTest();
-  delay(4000);
+  delay(1000);  
 
   // a single pixel
   tft.drawPixel(tft.width()/2, tft.height()/2, ST77XX_GREEN);
@@ -82,13 +250,6 @@ void setup(void) {
 
   Serial.println("done");
   delay(1000);
-}
-
-void loop() {
-  tft.invertDisplay(true);
-  delay(500);
-  tft.invertDisplay(false);
-  delay(500);
 }
 
 void testlines(uint16_t color) {
