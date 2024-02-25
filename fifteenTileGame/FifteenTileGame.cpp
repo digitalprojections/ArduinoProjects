@@ -1,13 +1,5 @@
+#include "Adafruit.h"
 #include "FifteenTileGame.h"
-
-extern int currentGame;
-
-int leftBtn = 5;
-int upBtn = 2;
-int downBtn = 4;
-int rightBtn = 3;
-int resetGameBtn = 7;
-int stopGameBtn = 6;
 
 int numbers[16];
 int x;  // Top-left corner X coordinate
@@ -20,12 +12,19 @@ int srcY = -1;
 int dstX = -1;
 int dstY = -1;
 
-unsigned long startTime;
-unsigned long elapsedTime;
-int inputNumber;
-bool gameOver = true;
+extern int leftBtn;
+extern int upBtn;
+extern int downBtn;
+extern int rightBtn;
+extern int resetGameBtn;
+extern int stopGameBtn;
 
-extern Adafruit_ST7789 tft ;
+extern unsigned long startTime;
+extern unsigned long elapsedTime;
+
+extern int inputNumber;
+extern bool gameOver;
+extern Adafruit_ST7789 tft;
 
 void Init() {
 

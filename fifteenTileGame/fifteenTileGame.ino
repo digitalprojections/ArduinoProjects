@@ -1,9 +1,10 @@
 #include "FifteenTileGame.h"
-
+#include "Adafruit.h"
 
 const String games[] = { "15 tile puzzle", "Battleship", "Ping-pong", "SpaceInvaders" };
 
 int currentGame = -1;
+
 extern int leftBtn;
 extern int upBtn;
 extern int downBtn;
@@ -16,14 +17,8 @@ extern unsigned long elapsedTime;
 
 extern int inputNumber;
 extern bool gameOver;
-#define TFT_CS 10  // if your display has CS pin
-#define TFT_RST 9  // reset pin
-#define TFT_DC 8   // data pin
-#define TFT_MOSI 11
-#define TFT_SCLK 13
 
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
-
+extern Adafruit_ST7789 tft;
 
 void setup(void) {
   Serial.begin(9600);
@@ -63,6 +58,9 @@ void loop() {
       case 2:
         PingPongGame();
         break;
+      case 3:
+        SpaceShipGame();
+        break;
     }
   } else {
 
@@ -76,6 +74,9 @@ void loop() {
         break;
       case 2:
         PingPongLoop();
+        break;
+      case 3:
+        SpaceShipLoop();
         break;
     }
   }
