@@ -2,8 +2,8 @@
 
 
 const String games[] = { "15 tile puzzle", "Battleship", "Ping-pong", "SpaceInvaders" };
-extern int currentGame;
 
+int currentGame = -1;
 extern int leftBtn;
 extern int upBtn;
 extern int downBtn;

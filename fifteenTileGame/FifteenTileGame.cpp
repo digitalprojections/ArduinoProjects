@@ -1,6 +1,6 @@
 #include "FifteenTileGame.h"
 
-int currentGame = -1;
+extern int currentGame;
 
 int leftBtn = 5;
 int upBtn = 2;
