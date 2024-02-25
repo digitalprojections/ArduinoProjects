@@ -16,25 +16,38 @@ extern bool gameOver;
 
 extern Adafruit_ST7789 tft;
 
-void SpaceShipGame()
-{
+  uint16_t x0 = 105;
+  uint16_t y0 = 210;
 
+void SpaceShipGame() {
+  tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
+  tft.setCursor(4, 30);
+  tft.setTextColor(ST77XX_GREEN);
+  tft.setTextSize(4);
+  tft.setTextWrap(true);
+  tft.println("Spaceship Invaders");
+
+  //delay(1500);
+
+  tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
+
+  spawnSpaceJet(0, 0);
 }
 
 void SpaceShipLoop() {
   bool legaMove = false;
-  //only process, if the input is onw of the 4 buttons
   inputNumber = checkInput();
 
   if (gameOver && inputNumber >= 0) {
     gameOver = false;
 
-    drawGame();
+    SpaceShipGame();
   }
 
-  if (inputNumber >= 0 && elapsedTime > 200) {
+  //only process, if the input is one of the 4 action buttons
+  if (inputNumber >= 0 && elapsedTime > 100) {
     startTime = millis();
-    
+
     switch (inputNumber) {
       case 0:  //Left
         legaMove = LeftMove();
@@ -49,7 +62,7 @@ void SpaceShipLoop() {
         legaMove = RightMove();
         break;
       case 4:  //reset
-        drawGame();
+        redrawGame(0);
         gameOver = false;
         break;
       case 5:
@@ -60,7 +73,7 @@ void SpaceShipLoop() {
     }
 
     if (legaMove) {
-      drawGame();
+      redrawGame(inputNumber);
     } else {
       //illegal move
       tft.drawRect(0, 0, 240, 240, ST77XX_RED);
@@ -76,24 +89,44 @@ void SpaceShipLoop() {
   }
 }
 
-void drawGame()
-{
-  tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
-  tft.setCursor(4, 30);
-  tft.setTextColor(ST77XX_GREEN);
-  tft.setTextSize(4);
-  tft.setTextWrap(true);
-  tft.println("Spaceship Invaders");
+//Called to refresh the screen
+void redrawGame(uint16_t move_x = 0) {
+
+  if(move_x == 0)
+  {
+    //left move
+    spawnSpaceJet(-5, 0);
+  }
+  else if(move_x == 3){
+    //right move
+    spawnSpaceJet(5, 0);
+  }
+
+}
+
+void spawnSpaceJet(uint16_t x, uint16_t y) {
+
+
+  uint16_t w;
+  uint16_t h = w = 30;
+
+  //clear the section
+  tft.fillRect(x0, y0, w, h, ST77XX_BLACK);
+
+  x0 = x0 + x;
+  y0 = y0 + y;
+  //redraw the ship
+  tft.fillRect(x0, y0, w, h, ST77XX_BLUE);
 }
 
 //Left
 bool LeftMove() {
-  return false;
+  return true;
 }
 
 //Right
 bool RightMove() {
-  return false;
+  return true;
 }
 //Upwards
 bool UpMove() {

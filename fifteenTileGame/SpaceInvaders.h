@@ -4,10 +4,11 @@
   Released into the public domain.
 */
 
-void drawGame();
+void redrawGame(uint16_t n);
 void SpaceShipLoop();
 void SpaceShipGame();
 bool LeftMove();
 bool RightMove();
 bool UpMove();
 bool DownMove();
+void spawnSpaceJet(uint16_t x, uint16_t y);
