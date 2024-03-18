@@ -47,9 +47,10 @@ const uint16_t eightBtn = 0x52;
 const uint16_t nineBtn = 0x4A;
 
 bool running = false;
-int speedDelay = 10;
-int lastSpeedDelay = 10;
+int speedDelay = 500;
+int lastSpeedDelay = 500;
 int stepLevel = 3;
+int steps[] = { 0, 1, 2, 3, 2, 1 };
 
 bool testMode = false;
 
@@ -99,9 +100,7 @@ void loop() {
           break;
         case fasterBtn:
           speedDelay = speedDelay - 10;
-          if (speedDelay < 4) {
-            speedDelay = 4;
-          }
+          FixSpeed();
           break;
         case slowerBtn:
           speedDelay = speedDelay + 10;
@@ -155,6 +154,7 @@ void loop() {
       elapsedTime = millis() - startTime;
       if (elapsedTime < 5000) {
         speedDelay = 10;
+        FixSpeed();
       } else if (elapsedTime < 10000) {
         speedDelay = 5000;
       } else {
@@ -167,29 +167,46 @@ void loop() {
   }
 }
 
+void FixSpeed() {
+
+  if (stepLevel == 3 && speedDelay < 4) {
+    speedDelay = 4;
+  }
+  if ((stepLevel == 2 || stepLevel == 4) && speedDelay < 40) {
+    speedDelay = 40;
+  }
+  if ((stepLevel == 1 || stepLevel == 5) && speedDelay < 150) {
+    speedDelay = 150;
+  }
+  if (stepLevel == 0 && speedDelay < 310) {
+    speedDelay = 310;
+  }
+}
+
 void ChangeStepLevel() {
+  FixSpeed();
   stepLevel++;
-  if (stepLevel > 3) {
+  if (stepLevel > 5) {
     stepLevel = 0;
   }
 
-  switch (stepLevel) {
-    case 0:
+  switch (steps[stepLevel]) {
+    case 0:  //minimum allowed speedDelay = 310
       digitalWrite(m1, LOW);
       digitalWrite(m2, LOW);
       digitalWrite(m3, LOW);
       break;
-    case 1:
+    case 1:  //minimum allowed speedDelay = 150
       digitalWrite(m1, HIGH);
       digitalWrite(m2, LOW);
       digitalWrite(m3, LOW);
       break;
-    case 2:
+    case 2:  //minimum allowed speedDelay = 40
       digitalWrite(m1, HIGH);
       digitalWrite(m2, HIGH);
       digitalWrite(m3, LOW);
       break;
-    case 3:
+    case 3:  //minimum allowed speedDelay = 4
       digitalWrite(m1, HIGH);
       digitalWrite(m2, HIGH);
       digitalWrite(m3, HIGH);

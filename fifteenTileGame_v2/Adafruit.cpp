@@ -8,12 +8,12 @@
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-int leftBtn = 4                                                                                                        ;
-int upBtn = 7;
+int leftBtn = 7;                                                                                                        ;
+int upBtn = 4;
 int downBtn = 2;
 int rightBtn = 6;
-int resetGameBtn = 7;
-int stopGameBtn = 6;
+int resetGameBtn = 3;
+int startBtn = 5;
 
 unsigned long startTime;
 unsigned long elapsedTime;
