@@ -1,8 +1,8 @@
 #include "Adafruit.h"
 
-#define TFT_CS 10  // if your display has CS pin
-#define TFT_RST 9  // reset pin
-#define TFT_DC 8   // data pin
+#define TFT_CS 8  // if your display has CS pin
+#define TFT_RST 10  // reset pin
+#define TFT_DC 9   // data pin
 #define TFT_MOSI 11
 #define TFT_SCLK 13
 
@@ -12,8 +12,8 @@ int leftBtn = 4                                                                 
 int upBtn = 7;
 int downBtn = 2;
 int rightBtn = 6;
-int resetGameBtn = 7;
-int stopGameBtn = 6;
+int resetGameBtn = 3;
+int stopGameBtn = 5;
 
 unsigned long startTime;
 unsigned long elapsedTime;
