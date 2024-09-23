@@ -1,5 +1,7 @@
+#include "HardwareSerial.h"
 #include "Adafruit.h"
 #include "FifteenTileGame.h"
+
 
 int numbers[16];
 int x;  // Top-left corner X coordinate
@@ -27,7 +29,6 @@ extern bool gameOver;
 extern Adafruit_ST7789 tft;
 
 void Init() {
-
   startTime = millis();  // Record start time
   generateDistinctRandomNumbers();
   drawSquareWithNumber();

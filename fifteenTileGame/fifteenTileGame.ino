@@ -25,7 +25,7 @@ void setup(void) {
 
   // Use this initializer (uncomment) if using a 1.3" or 1.54" 240x240 TFT:
   tft.init(240, 240, SPI_MODE3);  // Init ST7789 240x240
-  tft.setRotation(4);
+  tft.setRotation(2);
 
 
   // SPI speed defaults to SPI_DEFAULT_FREQ defined in the library, you can override it here
@@ -44,21 +44,27 @@ void loop() {
   elapsedTime = millis() - startTime;
 
   inputNumber = checkInput();
-
+  
+  //Serial.println(F("menu"));
+  //Serial.println(inputNumber);  
   if (gameOver) {
     currentGame = gameChoice();
     gameOver = false;
     switch (currentGame) {
       case 0:
+      Serial.println(inputNumber);
         Init();
         break;
       case 1:
+      Serial.println(inputNumber);
         BattleShipGame();
         break;
       case 2:
+      Serial.println(inputNumber);
         PingPongGame();
         break;
       case 3:
+      Serial.println(inputNumber);
         SpaceShipGame();
         break;
     }
@@ -67,15 +73,19 @@ void loop() {
 
     switch (currentGame) {
       case 0:
+      Serial.println(currentGame);
         FTGLoop();
         break;
       case 1:
+      Serial.println(currentGame);
         BattleShipLoop();
         break;
       case 2:
+      Serial.println(currentGame);
         PingPongLoop();
         break;
       case 3:
+      Serial.println(currentGame);
         SpaceShipLoop();
         break;
     }
@@ -96,11 +106,13 @@ void BattleShipLoop() {
 
 
 void initializeButtons() {
-  pinMode(resetGameBtn, OUTPUT);
-  pinMode(leftBtn, OUTPUT);
-  pinMode(upBtn, OUTPUT);
-  pinMode(downBtn, OUTPUT);
-  pinMode(rightBtn, OUTPUT);
+
+  pinMode(resetGameBtn, INPUT);
+  pinMode(stopGameBtn, INPUT);
+  pinMode(leftBtn, INPUT);
+  pinMode(upBtn, INPUT);
+  pinMode(downBtn, INPUT);
+  pinMode(rightBtn, INPUT);
 }
 
 
@@ -125,8 +137,14 @@ int gameChoice() {
   while (!gameselected) {
     tempinputnumber = checkInput();
     elapsedTime = millis() - startTime;
-
-    if (tempinputnumber >= 0 && elapsedTime > 200) {
+  
+    if (tempinputnumber >= 0 && tempinputnumber != 5 && elapsedTime > 200) {
+      
+      if(tempinputnumber == 4 && currentGame < 0)
+    {
+      return currentGame;
+    }
+      
       if (tempinputnumber == 4 && currentGame >= 0) {
         gameselected = true;
       } else {
