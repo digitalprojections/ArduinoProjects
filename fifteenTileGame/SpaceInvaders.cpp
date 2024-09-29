@@ -45,7 +45,7 @@ void SpaceShipGame() {
 
   tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
 
-  spawnSpaceJet(0, 0);
+  drawSpaceJet(0, 0);
 }
 
 void SpaceShipLoop() {
@@ -104,50 +104,25 @@ void redrawGame(uint16_t move_x = 0) {
 
   if (move_x == 0) {
     //left move
-    spawnSpaceJet(-5, 0);
+    drawSpaceJet(-5, 0);
   } else if (move_x == 3) {
     //right move
-    spawnSpaceJet(5, 0);
+    drawSpaceJet(5, 0);
   } else if (move_x == 4) {
     Serial.print("move_x: ");
     Serial.println(move_x);
   }
 }
 
-void spawnSpaceJet(uint16_t x, uint16_t y) {
-
+void drawSpaceJet(uint16_t x, uint16_t y) {
 
   uint16_t w;
   uint16_t h = w = 25;
-
-  // sekin ishlaydigan kod:
-  // x0 = x0 + x;
-  // y0 = y0 + y;
-
-  // uint16_t tx = x0;
-  // uint16_t ty = y0;
-
-  // for (uint16_t i = 0; i < 25; i++) {
-  //   for (uint16_t j = 0; j < 25; j++) {
-  //     if (spaceShip[i][j] == 1) {
-  //       x0 = tx + i;
-  //       y0 = ty + j;
-  //       tft.drawPixel(x0, y0, ST77XX_BLUE);
-  //       Serial.println("x0: ");
-  //       Serial.println(x0);
-  //     }
-  //   }
-  // }
-  // x0 = 105;
-  // y0 = 210;
-
 
   //clear the section
   tft.fillCircle(x0, y0, 15, ST77XX_BLACK);
   tft.fillTriangle(lx, ly, lx - 5, ly + 10, lx + 5, ly + 10, ST77XX_BLACK);
   tft.fillTriangle(tx, ty, tx - 5, ty + 10, tx + 5, ty + 10, ST77XX_BLACK);
-
-
 
   x0 = x0 + x;
   y0 = y0 + y;
