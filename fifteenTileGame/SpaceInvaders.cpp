@@ -1,5 +1,8 @@
+#include "Arduino.h"
 #include "Adafruit.h"
 #include "SpaceInvaders.h"
+
+extern Adafruit_ST7789 tft;
 
 extern int leftBtn;
 extern int upBtn;
@@ -11,12 +14,16 @@ extern int stopGameBtn;
 extern unsigned long startTime;
 extern unsigned long elapsedTime;
 
+unsigned long bulletSpawnTime;
+unsigned long bulletTravelTime;
+
 extern int inputNumber;
 extern bool gameOver;
 
 bool bullet = false;
+bool alienInvasion = false;
 
-extern Adafruit_ST7789 tft;
+uint16_t alienStart = 5000;
 
 uint16_t x0 = 105;
 uint16_t y0 = 210;
@@ -30,7 +37,7 @@ uint16_t ly = 0;
 uint16_t bx = 0;  //bullet pixel
 uint16_t by = 0;
 
-uint16_t bsInterval = 100; //bullet speed needed, because if moved every cycle, the bullet moves too fast
+uint16_t bsInterval = 10; //bullet speed needed, because if moved every cycle, the bullet moves too fast
 uint16_t bs = 0;
 
 void SpaceShipGame() {
@@ -45,7 +52,8 @@ void SpaceShipGame() {
 
   tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
 
-  drawSpaceJet(0, 0);
+
+  //drawSpaceJet(0, 0);
 }
 
 void SpaceShipLoop() {
@@ -78,8 +86,7 @@ void SpaceShipLoop() {
       case 3:  //Right
         goodMove = RightMove();
         break;
-      case 4:  //reset
-        redrawGame(4);
+      case 4:  //reset        
         gameOver = false;
         break;
       case 5:
@@ -156,6 +163,7 @@ bool UpMove() {
     bx = x0;
     by = y0 - 15;
     bullet = true;
+    bulletSpawnTime = millis();
   }
   return false;
 }
@@ -167,15 +175,22 @@ bool DownMove() {
 
 void ShootABullet() {
 
-  bs++;
+  bulletTravelTime = millis() - bulletSpawnTime;
 
-  if (bullet && bs > bsInterval && by > 0) {
-    bs = 0;
+  if (bullet && bulletTravelTime > bsInterval && by > 0) {
+    bulletSpawnTime = millis();
     tft.drawPixel(bx, by, ST77XX_BLACK);
     by = by - 1;
     tft.drawPixel(bx, by, ST77XX_RED);
     if (by <= 0) {
       bullet = false;
     }
+  }
+}
+
+void DrawAlienShips(){
+  if(alienInvasion)
+  {
+
   }
 }
