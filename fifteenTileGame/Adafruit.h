@@ -7,3 +7,4 @@
 int checkInput();
 void SpaceShipGame();
 void SpaceShipLoop();
+void IllegalMove();

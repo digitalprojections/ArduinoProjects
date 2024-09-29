@@ -69,8 +69,6 @@ void loop() {
         break;
     }
   } else {
-
-
     switch (currentGame) {
       case 0:
       Serial.println(currentGame);
@@ -85,7 +83,7 @@ void loop() {
         PingPongLoop();
         break;
       case 3:
-      Serial.println(currentGame);
+      //Serial.println(currentGame);
         SpaceShipLoop();
         break;
     }
