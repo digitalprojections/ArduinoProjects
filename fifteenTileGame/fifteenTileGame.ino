@@ -125,7 +125,7 @@ int gameChoice() {
     tft.print(i);
     tft.print(" - ");
     tft.println(games[i]);
-    delay(500);
+    delay(100);
   }
 
   bool gameselected = false;

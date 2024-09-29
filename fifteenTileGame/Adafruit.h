@@ -8,3 +8,4 @@ int checkInput();
 void SpaceShipGame();
 void SpaceShipLoop();
 void IllegalMove();
+void CountDown(int c);

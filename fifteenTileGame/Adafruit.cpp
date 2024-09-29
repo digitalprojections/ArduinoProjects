@@ -1,8 +1,8 @@
 #include "Adafruit.h"
 
-#define TFT_CS 8  // if your display has CS pin
+#define TFT_CS 8    // if your display has CS pin
 #define TFT_RST 10  // reset pin
-#define TFT_DC 9   // data pin
+#define TFT_DC 9    // data pin
 #define TFT_MOSI 11
 #define TFT_SCLK 13
 
@@ -21,14 +21,31 @@ unsigned long elapsedTime;
 int inputNumber;
 bool gameOver = true;
 
-void IllegalMove()
-{
+void IllegalMove() {
   //illegal move
-      tft.drawRect(0, 0, 240, 240, ST77XX_RED);
-      delay(100);
-      tft.drawRect(0, 0, 240, 240, ST77XX_WHITE);
-      delay(100);
-      tft.drawRect(0, 0, 240, 240, ST77XX_RED);
-      delay(100);
-      tft.drawRect(0, 0, 240, 240, ST77XX_ORANGE);
+  tft.drawRect(0, 0, 240, 240, ST77XX_RED);
+  delay(100);
+  tft.drawRect(0, 0, 240, 240, ST77XX_WHITE);
+  delay(100);
+  tft.drawRect(0, 0, 240, 240, ST77XX_RED);
+  delay(100);
+  tft.drawRect(0, 0, 240, 240, ST77XX_ORANGE);
+}
+
+
+int counter = 0;
+
+void CountDown(int count) {
+  //to stop filckering effect of repeated action
+  if(count != counter)
+  {
+    counter = count;
+    tft.fillRect(100, 100, 50, 50, ST77XX_BLACK);
+    tft.setTextColor(ST77XX_GREEN);
+    tft.setCursor(110, 100);
+    tft.println(count);
+    if (count == 0) {      
+      tft.fillRect(100, 100, 50, 50, ST77XX_BLACK);
+    }
+  }
 }

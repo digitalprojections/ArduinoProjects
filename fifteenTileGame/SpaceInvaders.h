@@ -13,3 +13,4 @@ bool UpMove();
 bool DownMove();
 void drawSpaceJet(uint16_t x, uint16_t y);
 void ShootABullet();
+void DrawAlienShips();
