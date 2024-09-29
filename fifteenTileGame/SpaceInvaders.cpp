@@ -49,7 +49,7 @@ void SpaceShipGame() {
 }
 
 void SpaceShipLoop() {
-  bool legaMove = false;
+  bool goodMove = false;
   inputNumber = checkInput();
 
   ShootABullet();
@@ -67,16 +67,16 @@ void SpaceShipLoop() {
 
     switch (inputNumber) {
       case 0:  //Left
-        legaMove = LeftMove();
+        goodMove = LeftMove();
         break;
       case 1:  //Up, not supported
-        legaMove = UpMove();
+        goodMove = UpMove();
         break;
       case 2:  //Down. not supported
-        legaMove = DownMove();
+        goodMove = DownMove();
         break;
       case 3:  //Right
-        legaMove = RightMove();
+        goodMove = RightMove();
         break;
       case 4:  //reset
         redrawGame(4);
@@ -89,7 +89,7 @@ void SpaceShipLoop() {
         break;
     }
 
-    if (legaMove) {
+    if (goodMove) {
       redrawGame(inputNumber);
     } else if (!bullet) {
       IllegalMove();
