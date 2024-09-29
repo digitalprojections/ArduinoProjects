@@ -84,6 +84,7 @@ void FTGLoop() {
         legaMove = RightMove(zero);
         break;
       case 4:  //reset
+        tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
         generateDistinctRandomNumbers();
         drawSquareWithNumber();
         gameOver = false;

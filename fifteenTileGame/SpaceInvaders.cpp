@@ -41,7 +41,7 @@ void SpaceShipGame() {
   tft.setTextWrap(true);
   tft.println("Spaceship Invaders");
 
-  //delay(1500);
+  delay(1000);
 
   tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
 
@@ -176,10 +176,12 @@ bool RightMove() {
 }
 //Upwards
 bool UpMove() {
-  //shoot a bullet
-  bx = x0;
-  by = y0 - 15;
-  bullet = true;
+  if (!bullet) {
+    //shoot a bullet
+    bx = x0;
+    by = y0 - 15;
+    bullet = true;
+  }
   return false;
 }
 //Down
@@ -192,10 +194,13 @@ void ShootABullet() {
 
   bs++;
 
-  if (bullet && bs > bsInterval) {
+  if (bullet && bs > bsInterval && by > 0) {
     bs = 0;
     tft.drawPixel(bx, by, ST77XX_BLACK);
     by = by - 1;
     tft.drawPixel(bx, by, ST77XX_RED);
+    if (by <= 0) {
+      bullet = false;
+    }
   }
 }
