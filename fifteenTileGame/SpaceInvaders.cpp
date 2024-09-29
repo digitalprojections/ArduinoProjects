@@ -91,7 +91,7 @@ void SpaceShipLoop() {
 
     if (legaMove) {
       redrawGame(inputNumber);
-    } else {
+    } else if (!bullet) {
       IllegalMove();
     }
 
