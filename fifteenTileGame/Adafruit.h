@@ -5,7 +5,6 @@
 
 
 int checkInput();
-void SpaceShipGame();
-void SpaceShipLoop();
 void IllegalMove();
 void CountDown(int c);
+void UpdateGameStats(uint8_t livesLeft, uint8_t hitCount, uint8_t missCount, int8_t wavesLeft = -1);

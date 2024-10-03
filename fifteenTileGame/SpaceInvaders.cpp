@@ -1,3 +1,4 @@
+#include "Adafruit_ST77xx.h"
 #include "Arduino.h"
 #include "Adafruit.h"
 #include "SpaceInvaders.h"
@@ -50,6 +51,12 @@ uint16_t by = 0;
 uint16_t bsInterval = 10;  //bullet speed needed, because if moved every cycle, the bullet moves too fast
 uint16_t bs = 0;
 
+//scoreboards
+uint16_t hitCount = 0;
+uint16_t missCount = 0;
+uint16_t livesLeft = 3;
+uint16_t wavesLeft = 5;
+
 void SpaceShipGame() {
   tft.fillRect(0, 0, 240, 240, ST77XX_BLACK);
   tft.setCursor(4, 30);
@@ -69,11 +76,13 @@ void SpaceShipGame() {
   drawSpaceJet(0, 0);
 }
 
+
+
+//Main game loop
 void SpaceShipLoop() {
   bool goodMove = false;
   inputNumber = checkInput();
 
-  ShootABullet();
 
   //gameover check
   if (gameOver && inputNumber >= 0) {
@@ -120,6 +129,8 @@ void SpaceShipLoop() {
 
 
   DrawAlienShips();
+  
+  ShootABullet();
 }
 
 //Called to refresh the screen
@@ -174,7 +185,9 @@ void ShootABullet() {
     tft.drawPixel(bx, by, ST77XX_RED);
     if (by <= 0) {
       bullet = false;
+      missCount++;
       tft.drawLine(0, 0, 240, 0, ST77XX_BLACK);
+      UpdateGameStats(livesLeft, hitCount, missCount, wavesLeft);
     }
   }
 }
@@ -234,6 +247,11 @@ void DrawAlienShips() {
     if (bx >= alienX - size && bx <= alienX + size && by >= alienY - size && by <= alienY + size) {
       gameStartTime = millis();
       alienInvasion = false;
+      
+      hitCount++;
+      bullet = false;
+      by = 0;
+      UpdateGameStats(livesLeft, hitCount, missCount, wavesLeft);
     } else {
       //draw 3 red legs
       tft.drawLine(alienX - size, alienY - size, alienX + size, alienY + size, ST77XX_YELLOW);
@@ -253,7 +271,9 @@ void DrawAlienShips() {
     
     if (coundDown > alienStart) {
       //alienStartCounter = 1;
-      CountDown(0);
+      CountDown(0); 
+           
+      UpdateGameStats(livesLeft, hitCount, missCount, wavesLeft);
       delay(100);
       alienInvasion = true;
     }

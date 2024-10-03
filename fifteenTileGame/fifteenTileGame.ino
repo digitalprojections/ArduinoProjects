@@ -1,5 +1,7 @@
-#include "FifteenTileGame.h"
 #include "Adafruit.h"
+#include "FifteenTileGame.h"
+#include "SpaceInvaders.h"
+#include "PingPong.h"
 
 const String games[] = { "15 tile puzzle", "Battleship", "Ping-pong", "SpaceInvaders" };
 
@@ -56,30 +58,30 @@ void loop() {
         Init();
         break;
       case 1:
-      Serial.println(inputNumber);
+      //Serial.println(inputNumber);
         BattleShipGame();
         break;
       case 2:
-      Serial.println(inputNumber);
+      //Serial.println(inputNumber);
         PingPongGame();
         break;
       case 3:
-      Serial.println(inputNumber);
+      //Serial.println(inputNumber);
         SpaceShipGame();
         break;
     }
   } else {
     switch (currentGame) {
       case 0:
-      Serial.println(currentGame);
+      //Serial.println(currentGame);
         FTGLoop();
         break;
       case 1:
-      Serial.println(currentGame);
+      //Serial.println(currentGame);
         BattleShipLoop();
         break;
       case 2:
-      Serial.println(currentGame);
+      //Serial.println(currentGame);
         PingPongLoop();
         break;
       case 3:
@@ -91,10 +93,7 @@ void loop() {
 }
 
 //these lines will be moved out to their own libraries
-void PingPongGame() {
-}
-void PingPongLoop() {
-}
+
 
 void BattleShipGame() {
 }
