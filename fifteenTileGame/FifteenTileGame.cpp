@@ -4,8 +4,8 @@
 
 
 int numbers[16];
-int x;  // Top-left corner X coordinate
-int y;  // Top-left corner Y coordinate
+int x;       // Top-left corner X coordinate
+int y;       // Top-left corner Y coordinate
 int w = 60;  // Width of the square
 int h = 60;  // Height of the square
 
@@ -64,7 +64,7 @@ void FTGLoop() {
     drawSquareWithNumber();
   }
 
-  
+
 
   if (inputNumber >= 0 && elapsedTime > 200) {
     startTime = millis();
@@ -300,7 +300,5 @@ void endGame() {
   tft.fillRect(0, 105, 240, 40, ST77XX_ORANGE);
   tft.println("You Won!");
   delay(2000);
-  gameOver = true;  
-}
-void _endGame() {
+  gameOver = true;
 }

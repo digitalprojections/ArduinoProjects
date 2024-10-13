@@ -40,6 +40,7 @@ void PingPongGame() {
 
   delay(1000);
 
+
   ppGameStartTime = millis();
 
   //clear screen
@@ -123,20 +124,20 @@ bool PP_DownMove() {
 
 //draw racket
 void drawRacket(int x) {
+  
 
   //redraw the racket
-    //clear the section
-    tft.fillRect(rx, ry, rw, rh, ST77XX_BLACK);
-    rx = rx + x;
-    tft.fillRect(rx, ry, rw, rh, ST77XX_WHITE);
+  //clear the section
+  tft.fillRect(rx, ry, rw, rh, ST77XX_BLACK);
+  rx = rx + x;
+  tft.fillRect(rx, ry, rw, rh, ST77XX_WHITE);
 
   if (rx > 65000) {
     rx = 0;
-  } 
+  }
   Serial.println(rx);
 
-  if(rx > 220)
-  {
+  if (rx > 220) {
     rx = 220;
   }
 }

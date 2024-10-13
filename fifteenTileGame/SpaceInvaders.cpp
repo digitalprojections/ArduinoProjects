@@ -129,7 +129,7 @@ void SpaceShipLoop() {
 
 
   DrawAlienShips();
-  
+
   ShootABullet();
 }
 
@@ -231,15 +231,18 @@ void DrawAlienShips() {
     int size = 5;
 
     alienMoveTime = millis() - gameStartTime;
-    if (aliendDirectionRight && alienX < 225) {
-      alienX++;
-      if (alienX == 225) {
-        aliendDirectionRight = false;
-      }
-    } else if (alienX > 15) {
-      alienX--;
-      if (alienX == 15) {
-        aliendDirectionRight = true;
+    if (alienMoveTime > bsInterval) {
+      if (aliendDirectionRight && alienX < 225) {
+        alienX++;
+        if (alienX == 225) {
+          aliendDirectionRight = false;
+        }
+      } else if (alienX > 15) {
+        alienX--;
+        if (alienX == 15) {
+          aliendDirectionRight = true;
+        }
+        gameStartTime = millis();
       }
     }
 
@@ -247,7 +250,7 @@ void DrawAlienShips() {
     if (bx >= alienX - size && bx <= alienX + size && by >= alienY - size && by <= alienY + size) {
       gameStartTime = millis();
       alienInvasion = false;
-      
+
       hitCount++;
       bullet = false;
       by = 0;
@@ -263,16 +266,16 @@ void DrawAlienShips() {
 
   } else {
     //check time to start invasion
-    
+
     int coundDown = millis() - gameStartTime;
-    
-      //alienStartCounter++;
-      CountDown((-3 + (coundDown / 1000)) * -1);
-    
+
+    //alienStartCounter++;
+    CountDown((-3 + (coundDown / 1000)) * -1);
+
     if (coundDown > alienStart) {
       //alienStartCounter = 1;
-      CountDown(0); 
-           
+      CountDown(0);
+
       UpdateGameStats(livesLeft, hitCount, missCount, wavesLeft);
       delay(100);
       alienInvasion = true;

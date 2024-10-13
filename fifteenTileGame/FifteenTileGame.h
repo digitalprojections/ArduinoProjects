@@ -21,7 +21,6 @@ bool LeftMove(int zero);
 bool RightMove(int zero);
 bool UpMove(int zero);
 bool DownMove(int zero);
-void _endGame();
 void endGame();
 int checkInput();
 

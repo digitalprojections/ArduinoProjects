@@ -2,8 +2,10 @@
 #include "FifteenTileGame.h"
 #include "SpaceInvaders.h"
 #include "PingPong.h"
+#include "FlappyBird.h"
+#include "Sprite.h"
 
-const String games[] = { "15 tile puzzle", "Battleship", "Ping-pong", "SpaceInvaders" };
+const String games[] = { "15 tile puzzle", "Flappy Bird", "Ping-pong", "SpaceInvaders" };
 
 int currentGame = -1;
 
@@ -13,6 +15,8 @@ extern int downBtn;
 extern int rightBtn;
 extern int resetGameBtn;
 extern int stopGameBtn;
+extern int jsxInput;
+extern int jsyInput;
 
 extern unsigned long startTime;
 extern unsigned long elapsedTime;
@@ -21,6 +25,9 @@ extern int inputNumber;
 extern bool gameOver;
 
 extern Adafruit_ST7789 tft;
+
+int jsx;
+int jsy;
 
 void setup(void) {
   Serial.begin(9600);
@@ -46,46 +53,48 @@ void loop() {
   elapsedTime = millis() - startTime;
 
   inputNumber = checkInput();
-  
-  //Serial.println(F("menu"));
-  //Serial.println(inputNumber);  
+
+
+
   if (gameOver) {
     currentGame = gameChoice();
     gameOver = false;
+
     switch (currentGame) {
       case 0:
-      Serial.println(inputNumber);
+        Serial.println(inputNumber);
         Init();
         break;
       case 1:
-      //Serial.println(inputNumber);
+        //Serial.println(inputNumber);
         BattleShipGame();
         break;
       case 2:
-      //Serial.println(inputNumber);
+        //Serial.println(inputNumber);
         PingPongGame();
         break;
       case 3:
-      //Serial.println(inputNumber);
+        //Serial.println(inputNumber);
         SpaceShipGame();
         break;
     }
   } else {
+    //Serial.print(currentGame);
     switch (currentGame) {
       case 0:
-      //Serial.println(currentGame);
+        //Serial.println(currentGame);
         FTGLoop();
         break;
       case 1:
-      //Serial.println(currentGame);
-        BattleShipLoop();
+        //Serial.println(currentGame);
+        FlappyBirdGameLoop();
         break;
       case 2:
-      //Serial.println(currentGame);
+        //Serial.println(currentGame);
         PingPongLoop();
         break;
       case 3:
-      //Serial.println(currentGame);
+        //Serial.println(currentGame);
         SpaceShipLoop();
         break;
     }
@@ -93,7 +102,6 @@ void loop() {
 }
 
 //these lines will be moved out to their own libraries
-
 
 void BattleShipGame() {
 }
@@ -110,6 +118,8 @@ void initializeButtons() {
   pinMode(upBtn, INPUT);
   pinMode(downBtn, INPUT);
   pinMode(rightBtn, INPUT);
+  pinMode(jsxInput, INPUT);
+  pinMode(jsyInput, INPUT);
 }
 
 
@@ -134,14 +144,19 @@ int gameChoice() {
   while (!gameselected) {
     tempinputnumber = checkInput();
     elapsedTime = millis() - startTime;
+
+      
+  jsx = analogRead(jsxInput);
+  jsy = analogRead(jsyInput);
+
   
+
     if (tempinputnumber >= 0 && tempinputnumber != 5 && elapsedTime > 200) {
-      
-      if(tempinputnumber == 4 && currentGame < 0)
-    {
-      return currentGame;
-    }
-      
+    
+      if (tempinputnumber == 4 && currentGame < 0) {
+        return currentGame;
+      }
+
       if (tempinputnumber == 4 && currentGame >= 0) {
         gameselected = true;
       } else {
@@ -163,6 +178,6 @@ void mediabuttons() {
   tft.fillScreen(ST77XX_BLACK);
   tft.setTextSize(2);
   tft.setTextColor(ST77XX_CYAN);
-  tft.println("Press Any Button");
+  tft.println("Press Select Button");
   tft.println("To PLAY again");
 }

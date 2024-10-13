@@ -1,3 +1,4 @@
+#include "Adafruit_ST77xx.h"
 #include "Adafruit.h"
 
 #define TFT_CS 8    // if your display has CS pin
@@ -15,12 +16,18 @@ int rightBtn = 2;
 int resetGameBtn = 3;
 int stopGameBtn = 5;
 
+int jsxInput = A1;
+int jsyInput = A2;
+
 unsigned long startTime;
 unsigned long elapsedTime;
 
 
 int inputNumber;
 bool gameOver = true;
+void ClearScreen(){
+  tft.drawRect(0, 0, 240, 240, ST77XX_BLACK);
+}
 
 void IllegalMove() {
   //illegal move
