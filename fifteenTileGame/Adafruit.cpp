@@ -9,15 +9,15 @@
 
 Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
-int leftBtn = 4;
-int upBtn = 7;
-int downBtn = A0;
-int rightBtn = 2;
-int resetGameBtn = 3;
-int stopGameBtn = 5;
+//int leftBtn = 4;
+//int upBtn = 7;
+//int downBtn = A0;
+//int rightBtn = 2;
+int resetGameBtn = 2;
+int stopGameBtn = 3;
 
-int jsxInput = A1;
-int jsyInput = A2;
+int jsxInput = A0;
+int jsyInput = A1;
 
 unsigned long startTime;
 unsigned long elapsedTime;

@@ -11,10 +11,10 @@
 
 extern Adafruit_ST7789 tft;
 
-extern int leftBtn;
-extern int upBtn;
-extern int downBtn;
-extern int rightBtn;
+//extern int leftBtn;
+//extern int upBtn;
+//extern int downBtn;
+//extern int rightBtn;
 extern int resetGameBtn;
 extern int stopGameBtn;
 

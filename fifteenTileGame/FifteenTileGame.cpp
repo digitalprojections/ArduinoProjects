@@ -13,13 +13,16 @@ int srcX = -1;
 int srcY = -1;
 int dstX = -1;
 int dstY = -1;
-
-extern int leftBtn;
-extern int upBtn;
-extern int downBtn;
-extern int rightBtn;
+int jsx;
+int jsy;
+//extern int leftBtn;
+//extern int upBtn;
+//extern int downBtn;
+//extern int rightBtn;
 extern int resetGameBtn;
 extern int stopGameBtn;
+extern int jsxInput;
+extern int jsyInput;
 
 extern unsigned long startTime;
 extern unsigned long elapsedTime;
@@ -29,21 +32,50 @@ extern bool gameOver;
 extern Adafruit_ST7789 tft;
 
 void Init() {
+  ClearScreen();
   startTime = millis();  // Record start time
   generateDistinctRandomNumbers();
   drawSquareWithNumber();
 }
 
 int checkInput() {
-  if (digitalRead(leftBtn) == HIGH) {
-    return 0;
-  } else if (digitalRead(upBtn) == HIGH) {
-    return 1;
-  } else if (digitalRead(downBtn) == HIGH) {
-    return 2;
-  } else if (digitalRead(rightBtn) == HIGH) {
+
+
+  jsx = analogRead(jsxInput);
+  jsy = analogRead(jsyInput);
+
+  // Serial.print("jsx ");
+  // Serial.println(jsx);
+  // Serial.print("jsy ");
+  // Serial.println(jsy);
+
+  //RIGHT
+  if (jsx < 50 && jsy > 300 && jsy < 700) {
+    //right
+    //Serial.println("right");
     return 3;
-  } else if (digitalRead(resetGameBtn) == HIGH) {
+  } else if (jsx > 700 && jsy < 700 && jsy > 300) {
+    //Serial.println("left");
+    return 0;
+  } else if (jsx < 700 && jsx > 500 && jsy < 50) {
+    //Serial.println("up");
+    return 1;
+  } else if (jsx < 700 && jsx > 500 && jsy > 700) {
+    //Serial.println("down");
+    return 2;
+  }
+
+
+  // if (digitalRead(leftBtn) == HIGH) {
+  //   return 0;
+  // } else if (digitalRead(upBtn) == HIGH) {
+  //   return 1;
+  // } else if (digitalRead(downBtn) == HIGH) {
+  //   return 2;
+  // } else if (digitalRead(rightBtn) == HIGH) {
+  //   return 3;
+  //} else
+  if (digitalRead(resetGameBtn) == HIGH) {
     //gameOver = true;
     return 4;
   } else if (digitalRead(stopGameBtn) == HIGH) {

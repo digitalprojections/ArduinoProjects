@@ -9,10 +9,10 @@ const String games[] = { "15 tile puzzle", "Flappy Bird", "Ping-pong", "SpaceInv
 
 int currentGame = -1;
 
-extern int leftBtn;
-extern int upBtn;
-extern int downBtn;
-extern int rightBtn;
+//extern int leftBtn;
+//extern int upBtn;
+//extern int downBtn;
+//extern int rightBtn;
 extern int resetGameBtn;
 extern int stopGameBtn;
 extern int jsxInput;
@@ -26,8 +26,6 @@ extern bool gameOver;
 
 extern Adafruit_ST7789 tft;
 
-int jsx;
-int jsy;
 
 void setup(void) {
   Serial.begin(9600);
@@ -114,10 +112,10 @@ void initializeButtons() {
 
   pinMode(resetGameBtn, INPUT);
   pinMode(stopGameBtn, INPUT);
-  pinMode(leftBtn, INPUT);
-  pinMode(upBtn, INPUT);
-  pinMode(downBtn, INPUT);
-  pinMode(rightBtn, INPUT);
+  // pinMode(leftBtn, INPUT);
+  // pinMode(upBtn, INPUT);
+  // pinMode(downBtn, INPUT);
+  // pinMode(rightBtn, INPUT);
   pinMode(jsxInput, INPUT);
   pinMode(jsyInput, INPUT);
 }
@@ -145,10 +143,7 @@ int gameChoice() {
     tempinputnumber = checkInput();
     elapsedTime = millis() - startTime;
 
-      
-  jsx = analogRead(jsxInput);
-  jsy = analogRead(jsyInput);
-
+    
   
 
     if (tempinputnumber >= 0 && tempinputnumber != 5 && elapsedTime > 200) {
