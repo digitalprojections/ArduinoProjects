@@ -61,7 +61,7 @@ void loop() {
     switch (currentGame) {
       case 0:
         Serial.println(inputNumber);
-        Init();
+        FifteenTileGame();
         break;
       case 1:
         //Serial.println(inputNumber);

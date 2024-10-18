@@ -31,7 +31,7 @@ extern int inputNumber;
 extern bool gameOver;
 extern Adafruit_ST7789 tft;
 
-void Init() {
+void FifteenTileGame() {
   ClearScreen();
   startTime = millis();  // Record start time
   generateDistinctRandomNumbers();

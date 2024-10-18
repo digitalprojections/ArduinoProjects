@@ -9,7 +9,7 @@
 
 #include "Arduino.h"
 
-void Init();
+void FifteenTileGame();
 void FTGLoop();
 int indexOf(int value);
 void generateDistinctRandomNumbers();
