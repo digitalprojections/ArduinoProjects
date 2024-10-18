@@ -49,15 +49,15 @@ const uint16_t eightBtn = 0x52;
 const uint16_t nineBtn = 0x4A;
 
 bool running = false;
-//int speedDelay = 500;
-//int lastSpeedDelay = 500;
-//int stepLevel = 3;
-//int steps[] = { 0, 1, 2, 3, 2, 1 };
+int speedDelay = 500;
+int lastSpeedDelay = 500;
+int stepLevel = 3;
+int steps[] = { 0, 1, 2, 3, 2, 1 };
 
 bool testMode = false;
-int steps = 500;
+//int steps = 500;
 
-Stepper myStepper(steps, );
+//Stepper myStepper(steps, );
 
 void setup() {
   // Sets the two pins as Outputs
