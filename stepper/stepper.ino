@@ -1,11 +1,4 @@
-/*   
- *   Basic example code for controlling a stepper without library
- *      
- *   by Dejan, https://howtomechatronics.com
- */
-#include <SoftwareSerial.h>
 #include <IRremote.hpp>
-#include <Stepper.h>
 
 
 // defines pins
