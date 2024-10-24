@@ -14,9 +14,9 @@
 #define ADMUX_MUX_H
 
 #ifdef UNIT_TEST
-  #include "ArduinoFake.h"
+#include "ArduinoFake.h"
 #else
-  #include "Arduino.h"
+#include "Arduino.h"
 #endif
 
 namespace admux {
@@ -45,32 +45,31 @@ typedef struct Pin {
   uint8_t mode;
   PinType type;
 
-  Pin() :
-      Pin(UNDEFINED, OUTPUT, PinType::Digital) {
+  Pin()
+    : Pin(UNDEFINED, OUTPUT, PinType::Digital) {
   }
 
-  Pin(int8_t pin, uint8_t mode, PinType type) :
-      pin(pin), mode(mode), type(type) {
+  Pin(int8_t pin, uint8_t mode, PinType type)
+    : pin(pin), mode(mode), type(type) {
   }
 } Pin;
 
 typedef struct Pinset {
-// @formatter:off
+  // @formatter:off
   /*
    * Horribly clumsy constructor, I know, but, willing to support even legacy
    * MCUs, more elegant solutions like std::initializer_list aren't available,
    * alas.
    */
   Pinset(
-      uint8_t pin0,
-      int8_t pin1 = UNDEFINED,
-      int8_t pin2 = UNDEFINED,
-      int8_t pin3 = UNDEFINED,
-      int8_t pin4 = UNDEFINED,
-      int8_t pin5 = UNDEFINED,
-      int8_t pin6 = UNDEFINED,
-      int8_t pin7 = UNDEFINED
-      ){
+    uint8_t pin0,
+    int8_t pin1 = UNDEFINED,
+    int8_t pin2 = UNDEFINED,
+    int8_t pin3 = UNDEFINED,
+    int8_t pin4 = UNDEFINED,
+    int8_t pin5 = UNDEFINED,
+    int8_t pin6 = UNDEFINED,
+    int8_t pin7 = UNDEFINED) {
     pins[0] = pin0;
     pins[1] = pin1;
     pins[2] = pin2;
@@ -79,7 +78,7 @@ typedef struct Pinset {
     pins[5] = pin5;
     pins[6] = pin6;
     pins[7] = pin7;
-    for(int i = 0; i < MAX_SIZE; i++) {
+    for (int i = 0; i < MAX_SIZE; i++) {
       if (!isDefined(pins[i])) {
         m_size = i;
         return;
@@ -87,7 +86,7 @@ typedef struct Pinset {
     }
     m_size = MAX_SIZE;
   }
-// @formatter:on
+  // @formatter:on
 
   int8_t operator[](uint8_t index) {
     return pins[index];
@@ -256,4 +255,4 @@ protected:
 
 }
 
-#endif // ADMUX_MUX_H
+#endif  // ADMUX_MUX_H

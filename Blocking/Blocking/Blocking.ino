@@ -9,17 +9,9 @@
 // $Id: Blocking.pde,v 1.1 2011/01/05 01:51:01 mikem Exp mikem $
 #include <Arduino.h>
 #include "Mux.h"
-
 using namespace admux;
+
 #include <AccelStepper.h>
-
-//timer
-int startTime;
-int elapsedTime;
-int pressedButton = -1;
-
-// Define a stepper and the pins it will use
-AccelStepper stepper;  // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
 /*
  * Creates a Mux instance.
  *
@@ -28,43 +20,90 @@ AccelStepper stepper;  // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 
  */
 Mux mux(Pin(A0, INPUT, PinType::Analog), Pinset(8, 9, 10, 11));
 
+// Define a stepper and the pins it will use
+AccelStepper stepper;  // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+
+//timer main
+int startTime;
+int elapsedTime;
+//timer car
+int startTimeCar;
+int elapsedTimeCar;
+int pressedButton = -1;
+
+//two states: running and programming
+bool programmingMode = true;
+
+//Tones
+
+int Tones[10];
+//values
+int Moves[10];
+int step = 0;
+//Move
+enum Motion {
+  Forward,
+  Backward,
+  Right,
+  Left
+};
+enum Button{
+ForwardBtn, BackwardBtn, RightBtn, LeftBtn, EnterBtn
+};
+
 void setup() {
+  //stepper
   stepper.setMaxSpeed(2000.0);
   stepper.setAcceleration(100.0);
   stepper.setSpeed(2000);
   // Serial port initialization.
   Serial.begin(9600);
-  while (!Serial) /* Waits for serial port to connect (needed for Leonardo only) */
+  /* Waits for serial port to connect (needed for Leonardo only) */
+  while (!Serial)
     ;
 }
 
 void loop() {
+
   elapsedTime = millis() - startTime;
-  if (elapsedTime > 500) {
+  if (!programmingMode) {
     RunMotor();
+  } else {
+    if (elapsedTime > 500) {
+      byte data;
+      for (byte i = 0; i < mux.channelCount(); i++) {
+        data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
 
+        if (data == LOW && pressedButton != i) {
+          pressedButton = i;
+          Serial.print("Push button at channel ");
+          Serial.print(i);
+          Serial.println();
 
-    byte data;
-    for (byte i = 0; i < mux.channelCount(); i++) {
-      data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
-
-      if (data == LOW && pressedButton != i) {
-        pressedButton = i;
-        Serial.print("Push button at channel ");
-        Serial.print(i);
-        //   Serial.print(" is ");
-        //   Serial.println(data == LOW ? "pressed" : "not pressed");
-        Serial.println();
-        startTime = millis();
-        pressedButton = -1;
-      } 
+          if (step < 9) {
+            //Assign programmed motion value
+            Moves[step] == i;
+            //Advance program step
+            step++;
+          } else {
+            if (pressedButton == EnterBtn)
+              //Start move
+              programmingMode = false;
+              pressedButton = -1;
+          }
+          startTime = millis();          
+        }
+      }
     }
   }
 }
 
 void RunMotor() {
-  stepper.moveTo(0);
-  stepper.run();
-  stepper.moveTo(500);
-  stepper.run();
+  elapsedTimeCar = millis() - startTimeCar;
+  if (elapsedTimeCar > 500) {
+    stepper.moveTo(0);
+    stepper.runToNewPosition(100);    
+    stepper.runToNewPosition(500);
+    startTimeCar = millis();
+  }
 }
