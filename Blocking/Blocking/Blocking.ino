@@ -43,6 +43,10 @@ int const programSteps = 10;
 int runningStep = 0;
 bool engineStop = true;
 //Tones
+#define speakerPort A4
+#define enterLed 2
+#define clearDataLed 3
+#define inputLed 4
 
 int Tones[programSteps];
 //values
@@ -56,14 +60,41 @@ enum Motion {
   Left
 };
 int tones[] = {
-  NOTE_B4, NOTE_C4, NOTE_CS4, NOTE_D4, NOTE_DS4
+  NOTE_B4,
+  NOTE_C4,
+  NOTE_CS4,
+  NOTE_D4,
+  NOTE_DS4,
+  NOTE_B6,
+  NOTE_B2,
+  NOTE_A2,
+  NOTE_A5,
+  NOTE_B3,
+  NOTE_B5,
+  NOTE_C2,
+  NOTE_D3,
+  NOTE_E3,
+  NOTE_AS5,
+  NOTE_DS2
 };
 enum Button {
-  ForwardBtn,
-  BackwardBtn,
-  RightBtn,
+  Zero,
+  One,
+  Two,
+  Three,
+  Four,
+  Five,
+  Six,
+  Seven,
+  Eight,
+  Nine,
+  Ten,
+  ClearBtn,
+  EnterBtn,
   LeftBtn,
-  EnterBtn
+  BackwardBtn,
+  ForwardBtn,
+  RightBtn
 };
 
 int motorA1 = 12;
@@ -78,6 +109,10 @@ void setup() {
   pinMode(motorB1, OUTPUT);
   pinMode(motorB2, OUTPUT);
 
+  pinMode(inputLed, OUTPUT);
+  pinMode(clearDataLed, OUTPUT);
+  pinMode(enterLed, OUTPUT);
+
   //stepper
   //stepper.setMaxSpeed(1000.0);
   //stepper.setAcceleration(50.0);
@@ -89,6 +124,16 @@ void setup() {
 }
 
 void loop() {
+
+  if (programmingMode) {
+    digitalWrite(inputLed, HIGH);
+    digitalWrite(clearDataLed, LOW);
+    digitalWrite(enterLed, LOW);
+  } else {
+    digitalWrite(inputLed, LOW);
+    digitalWrite(clearDataLed, LOW);
+    digitalWrite(enterLed, HIGH);
+  }
 
   elapsedTime = millis() - startTime;
   if (!programmingMode) {
@@ -113,32 +158,53 @@ void loop() {
         if (data == LOW && pressedButton != i) {
           pressedButton = i;
           Serial.print("Push button at channel ");
-          Serial.print(i);
-          Serial.println();
+          Serial.println(i);
 
           if (step < programSteps) {
-            //Assign programmed motion value
-            Moves[step] = i * 500;
-            Tones[step] = tones[i];
-            PlayTone(tones[pressedButton]);
 
-            //Advance program step
-            step++;
+            //0-9 NUMBERS
+            if (pressedButton < 10) {
+              //Assign programmed motion value
+              Moves[step] = i * 500;
+              Tones[step] = tones[i];
+              PlayTone(tones[pressedButton]);
+              //Advance program step
+              step++;
+            }
+            //10=Clear, 11=Enter
+            else if (pressedButton == ClearBtn) {
+              //Reset
+              step = 0;
+              ClearSteps();
+            } else if (pressedButton == EnterBtn) {
+              //Enter
+            }
+            //12-15 DIRECTIONS, LEFT, DOWN, UP, RIGHT respectively
+            else {
+              //Assign programmed motion value
+              Moves[step] = i * 500;
+              Tones[step] = tones[i];
+              PlayTone(tones[pressedButton]);
+              //Advance program step
+              step++;
+            }
           } else {
             if (pressedButton == EnterBtn)
               //Start move
               programmingMode = false;
             pressedButton = -1;
+            step = 0;
           }
+          //next input OK
           startTime = millis();
         }
       }
-      noTone(A4);
+      noTone(speakerPort);
     }
   }
 }
 
-void RunMotor() { 
+void RunMotor() {
 
   while (!engineStop) {
     if (runningStep < programSteps) {
@@ -164,7 +230,7 @@ void RunMotor() {
 }
 
 void PlayTone(int t) {
-  tone(A4, t, 100);
+  tone(speakerPort, t, 100);
   delay(100);
 }
 
@@ -191,4 +257,11 @@ void StopMoving() {
   digitalWrite(motorA2, LOW);
   digitalWrite(motorB1, LOW);
   digitalWrite(motorB2, LOW);
+}
+
+//clear steps
+void ClearSteps() {
+  PlayTone(NOTE_A5);
+  delay(200);
+  noTone(speakerPort);
 }
