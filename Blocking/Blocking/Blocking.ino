@@ -1,28 +1,12 @@
 // Blocking.pde
-// -*- mode: C++ -*-
-//
-// Shows how to use the blocking call runToNewPosition
-// Which sets a new target position and then waits until the stepper has
-// achieved it.
-//
-// Copyright (C) 2009 Mike McCauley
-// $Id: Blocking.pde,v 1.1 2011/01/05 01:51:01 mikem Exp mikem $
 #include <Arduino.h>
 #include "Mux.h"
 using namespace admux;
 
-#include <AccelStepper.h>
+//#include <AccelStepper.h>
 #include "pitches.h"
-/*
- * Creates a Mux instance.
- *
- * 1st argument is the SIG (signal) pin (Arduino digital input pin 3).
- * 2nd argument is the S0-S3 (channel control) pins (Arduino pins 8, 9, 10, 11).
- */
-Mux mux(Pin(A0, INPUT, PinType::Analog), Pinset(6, 7, 8, 9));
 
-// Define a stepper and the pins it will use
-//AccelStepper stepper;  // Defaults to AccelStepper::FULL4WIRE (4 pins) on 2, 3, 4, 5
+Mux mux(Pin(A0, INPUT, PinType::Analog), Pinset(6, 7, 8, 9));
 
 //timer main
 int startTime;
@@ -39,7 +23,7 @@ int pressedButton = -1;
 //two states: running and programming
 bool programmingMode = true;
 
-int const programSteps = 10;
+int const programSteps = 128;
 int runningStep = 0;
 bool engineStop = true;
 //Tones
@@ -96,6 +80,50 @@ enum Button {
   ForwardBtn,
   RightBtn
 };
+#define REST -1
+int melody[] = {
+  NOTE_AS4, NOTE_AS4, NOTE_AS4,
+  NOTE_F5, NOTE_C6,
+  NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F6, NOTE_C6,
+  NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F6, NOTE_C6,
+  NOTE_AS5, NOTE_A5, NOTE_AS5, NOTE_G5, NOTE_C5, NOTE_C5, NOTE_C5,
+  NOTE_F5, NOTE_C6,
+  NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F6, NOTE_C6,
+
+  NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F6, NOTE_C6,
+  NOTE_AS5, NOTE_A5, NOTE_AS5, NOTE_G5, NOTE_C5, NOTE_C5,
+  NOTE_D5, NOTE_D5, NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F5,
+  NOTE_F5, NOTE_G5, NOTE_A5, NOTE_G5, NOTE_D5, NOTE_E5, NOTE_C5, NOTE_C5,
+  NOTE_D5, NOTE_D5, NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F5,
+
+  NOTE_C6, NOTE_G5, NOTE_G5, REST, NOTE_C5,
+  NOTE_D5, NOTE_D5, NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F5,
+  NOTE_F5, NOTE_G5, NOTE_A5, NOTE_G5, NOTE_D5, NOTE_E5, NOTE_C6, NOTE_C6,
+  NOTE_F6, NOTE_DS6, NOTE_CS6, NOTE_C6, NOTE_AS5, NOTE_GS5, NOTE_G5, NOTE_F5,
+  NOTE_C6
+};
+
+int durations[] = {
+  8, 8, 8,
+  2, 2,
+  8, 8, 8, 2, 4,
+  8, 8, 8, 2, 4,
+  8, 8, 8, 2, 8, 8, 8,
+  2, 2,
+  8, 8, 8, 2, 4,
+
+  8, 8, 8, 2, 4,
+  8, 8, 8, 2, 8, 16,
+  4, 8, 8, 8, 8, 8,
+  8, 8, 8, 4, 8, 4, 8, 16,
+  4, 8, 8, 8, 8, 8,
+
+  8, 16, 2, 8, 8,
+  4, 8, 8, 8, 8, 8,
+  8, 8, 8, 4, 8, 4, 8, 16,
+  4, 8, 4, 8, 4, 8, 4, 8,
+  1
+};
 
 int motorA1 = 12;
 int motorA2 = 11;
@@ -137,6 +165,8 @@ void loop() {
 
   elapsedTime = millis() - startTime;
   if (!programmingMode) {
+    PlayStartTone();
+
     if (engineStop) {
       engineStop = false;
       RunMotor();
@@ -151,14 +181,15 @@ void loop() {
     }
   } else {
     if (elapsedTime > 500) {
+
       byte data;
       for (byte i = 0; i < mux.channelCount(); i++) {
+
         data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
 
-        if (data == LOW && pressedButton != i) {
+        if (data == LOW) {
+
           pressedButton = i;
-          Serial.print("Push button at channel ");
-          Serial.println(i);
 
           if (step < programSteps) {
 
@@ -177,12 +208,14 @@ void loop() {
               step = 0;
               ClearSteps();
             } else if (pressedButton == EnterBtn) {
-              //Enter
+              //anytime Enter is pressed, the car starts executing the program
+              //Start move
+              programmingMode = false;
             }
             //12-15 DIRECTIONS, LEFT, DOWN, UP, RIGHT respectively
             else {
-              //Assign programmed motion value
-              Moves[step] = i * 500;
+              //Assign programmed motion value as is, 12 to 16
+              Moves[step] = i;
               Tones[step] = tones[i];
               PlayTone(tones[pressedButton]);
               //Advance program step
@@ -190,9 +223,9 @@ void loop() {
             }
           } else {
             if (pressedButton == EnterBtn)
-              //Start move
-              programmingMode = false;
-            pressedButton = -1;
+              pressedButton = -1;
+            //Start move
+            programmingMode = false;
             step = 0;
           }
           //next input OK
@@ -232,6 +265,30 @@ void RunMotor() {
 void PlayTone(int t) {
   tone(speakerPort, t, 100);
   delay(100);
+}
+
+//sequence of tones to play before the program execution
+void PlayStartTone() {
+  engineStop = false;
+
+  int size = sizeof(durations) / sizeof(int);
+
+  for (int note = 0; note < size; note++) {
+    //to calculate the note duration, take one second divided by the note type.
+    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+    int duration = 1000 / durations[note];
+    tone(speakerPort, melody[note], duration);
+
+    //to distinguish the notes, set a minimum time between them.
+    //the note's duration + 30% seems to work well:
+    int pauseBetweenNotes = duration * 1.30;
+    delay(pauseBetweenNotes);
+
+    //stop the tone playing:
+    noTone(speakerPort);
+  }
+  //lastly
+  engineStop = true;
 }
 
 void GoForward() {
