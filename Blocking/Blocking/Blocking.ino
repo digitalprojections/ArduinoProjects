@@ -6,7 +6,7 @@ using namespace admux;
 //#include <AccelStepper.h>
 #include "pitches.h"
 
-Mux mux(Pin(A0, INPUT, PinType::Analog), Pinset(6, 7, 8, 9));
+Mux mux(Pin(2, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
 
 //timer main
 int startTime;
@@ -26,11 +26,26 @@ bool programmingMode = true;
 int const programSteps = 128;
 int runningStep = 0;
 bool engineStop = true;
+
+//turn signals
+bool leftTurn = false;
+bool rightTurn = true;
+bool stopLightOn = true;
+
 //Tones
-#define speakerPort A4
-#define enterLed 2
-#define clearDataLed 3
-#define inputLed 4
+#define speakerPort 3
+
+#define stopLigts A3
+#define turnLeft A4
+#define turnRight A5
+
+#define toyModeLed 4
+#define engineerModeLed 5
+
+
+#define enterLed A2
+#define clearDataLed A1
+#define inputLed A0
 
 int Tones[programSteps];
 //values
@@ -141,31 +156,44 @@ void setup() {
   pinMode(clearDataLed, OUTPUT);
   pinMode(enterLed, OUTPUT);
 
+  pinMode(turnLeft, OUTPUT);
+  pinMode(turnRight, OUTPUT);
+  pinMode(stopLigts, OUTPUT);
+
+  pinMode(toyModeLed, OUTPUT);
+  pinMode(engineerModeLed, OUTPUT);
+
+
   //stepper
   //stepper.setMaxSpeed(1000.0);
   //stepper.setAcceleration(50.0);
   //stepper.setSpeed(1000);
 
-  pinMode(A1, OUTPUT);
+  pinMode(2, INPUT);
   // Serial port initialization.
   Serial.begin(9600);
 }
 
 void loop() {
 
+
+    digitalWrite(toyModeLed, HIGH);
+    digitalWrite(engineerModeLed, LOW);
+
   if (programmingMode) {
     digitalWrite(inputLed, HIGH);
-    digitalWrite(clearDataLed, LOW);
-    digitalWrite(enterLed, LOW);
+
+    digitalWrite(clearDataLed, HIGH);
+    //digitalWrite(enterLed, HIGH);
   } else {
-    digitalWrite(inputLed, LOW);
-    digitalWrite(clearDataLed, LOW);
-    digitalWrite(enterLed, HIGH);
+    //digitalWrite(inputLed, HIGH);
+    //digitalWrite(clearDataLed, HIGH);
+    //digitalWrite(enterLed, HIGH);
   }
 
   elapsedTime = millis() - startTime;
   if (!programmingMode) {
-    PlayStartTone();
+    //PlayStartTone();
 
     if (engineStop) {
       engineStop = false;
@@ -177,10 +205,13 @@ void loop() {
       Serial.print("step: ");
       Serial.println(runningStep);
       PlayTone(Tones[runningStep]);
-      digitalWrite(A1, HIGH);
+      digitalWrite(2, HIGH);
     }
   } else {
     if (elapsedTime > 500) {
+
+      FlashStopLights();
+      FlashTurnLights();
 
       byte data;
       for (byte i = 0; i < mux.channelCount(); i++) {
@@ -191,6 +222,7 @@ void loop() {
 
           pressedButton = i;
 
+          Serial.println(i);
           if (step < programSteps) {
 
             //0-9 NUMBERS
@@ -229,9 +261,10 @@ void loop() {
             step = 0;
           }
           //next input OK
-          startTime = millis();
         }
       }
+      startTime = millis();
+
       noTone(speakerPort);
     }
   }
@@ -289,6 +322,35 @@ void PlayStartTone() {
   }
   //lastly
   engineStop = true;
+}
+
+void FlashTurnLights() {
+  //rightTurn
+  //leftTurn
+  if (rightTurn) {
+    digitalWrite(turnRight, HIGH);
+    rightTurn = false;
+  } else {
+    digitalWrite(turnRight, LOW);
+    rightTurn = true;
+  }
+  if (leftTurn) {
+    digitalWrite(turnLeft, HIGH);
+    leftTurn = false;
+  } else {
+    digitalWrite(turnLeft, LOW);
+    leftTurn = true;
+  }
+}
+
+void FlashStopLights() {
+  if (stopLightOn) {
+    digitalWrite(stopLigts, HIGH);
+    stopLightOn = false;
+  } else {
+    digitalWrite(stopLigts, LOW);
+    stopLightOn = true;
+  }
 }
 
 void GoForward() {
