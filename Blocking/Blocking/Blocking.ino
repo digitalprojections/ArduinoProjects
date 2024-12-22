@@ -31,6 +31,9 @@ bool engineStop = true;
 bool leftTurn = false;
 bool rightTurn = true;
 bool stopLightOn = true;
+//direction flag to flash the turn signals. The same method is used to flash either or both winkers
+bool RIGHTTURN;
+bool LEFTTURN;
 
 //Tones
 #define speakerPort 3
@@ -39,13 +42,16 @@ bool stopLightOn = true;
 #define turnLeft A4
 #define turnRight A5
 
-#define toyModeLed 4
+#define headLights 4
 #define engineerModeLed 5
 
 
-#define enterLed A2
-#define clearDataLed A1
-#define inputLed A0
+#define enterValueLed A0
+#define enterDirectionLed A1
+#define clearDataLed A2
+
+//music tone pause?
+#define REST -1
 
 int Tones[programSteps];
 //values
@@ -58,36 +64,19 @@ enum Motion {
   Right,
   Left
 };
-int tones[] = {
-  NOTE_B4,
-  NOTE_C4,
-  NOTE_CS4,
-  NOTE_D4,
-  NOTE_DS4,
-  NOTE_B6,
-  NOTE_B2,
-  NOTE_A2,
-  NOTE_A5,
-  NOTE_B3,
-  NOTE_B5,
-  NOTE_C2,
-  NOTE_D3,
-  NOTE_E3,
-  NOTE_AS5,
-  NOTE_DS2
-};
-enum Button {
-  Zero,
+
+//All 16 keys?
+enum InputKey {
   One,
-  Two,
-  Three,
+  Ten,
+  Hundred,
   Four,
   Five,
   Six,
   Seven,
   Eight,
   Nine,
-  Ten,
+  Mode,
   ClearBtn,
   EnterBtn,
   LeftBtn,
@@ -95,7 +84,22 @@ enum Button {
   ForwardBtn,
   RightBtn
 };
-#define REST -1
+
+#pragma region INIT TONE
+//Initialize Tone
+bool initialized;
+int InitMelody[] = {
+  NOTE_AS4, NOTE_AS4, NOTE_AS4,
+  NOTE_F5, NOTE_C6
+};
+int InitDurations[] = {
+  8, 8, 8,
+  2, 2
+};
+#pragma endregion
+
+#pragma region FULL Melody
+
 int melody[] = {
   NOTE_AS4, NOTE_AS4, NOTE_AS4,
   NOTE_F5, NOTE_C6,
@@ -139,6 +143,7 @@ int durations[] = {
   4, 8, 4, 8, 4, 8, 4, 8,
   1
 };
+#pragma endregion
 
 int motorA1 = 12;
 int motorA2 = 11;
@@ -152,23 +157,29 @@ void setup() {
   pinMode(motorB1, OUTPUT);
   pinMode(motorB2, OUTPUT);
 
-  pinMode(inputLed, OUTPUT);
-  pinMode(clearDataLed, OUTPUT);
-  pinMode(enterLed, OUTPUT);
+  pinMode(enterValueLed, OUTPUT);      //A0 green
+  pinMode(enterDirectionLed, OUTPUT);  //A1 blue
+  pinMode(clearDataLed, OUTPUT);       //A2 red
 
   pinMode(turnLeft, OUTPUT);
   pinMode(turnRight, OUTPUT);
+  //stop tail lights
   pinMode(stopLigts, OUTPUT);
 
-  pinMode(toyModeLed, OUTPUT);
-  pinMode(engineerModeLed, OUTPUT);
+  //Headlights
+  pinMode(headLights, OUTPUT);
+  //headlights OFF
+  digitalWrite(headLights, LOW);
 
+  //toggle LED (OFF = toy mode/ ON = engineer mode)
+  pinMode(engineerModeLed, OUTPUT);
 
   //stepper
   //stepper.setMaxSpeed(1000.0);
   //stepper.setAcceleration(50.0);
   //stepper.setSpeed(1000);
 
+  //mux SIG input
   pinMode(2, INPUT);
   // Serial port initialization.
   Serial.begin(9600);
@@ -176,19 +187,17 @@ void setup() {
 
 void loop() {
 
-
-    digitalWrite(toyModeLed, HIGH);
-    digitalWrite(engineerModeLed, LOW);
+  digitalWrite(engineerModeLed, LOW);
 
   if (programmingMode) {
-    digitalWrite(inputLed, HIGH);
-
-    digitalWrite(clearDataLed, HIGH);
-    //digitalWrite(enterLed, HIGH);
-  } else {
-    //digitalWrite(inputLed, HIGH);
+    digitalWrite(enterDirectionLed, HIGH);
+    PlayInitTone();
+    //digitalWrite(enterValueLed, HIGH);
     //digitalWrite(clearDataLed, HIGH);
-    //digitalWrite(enterLed, HIGH);
+  } else {
+    //digitalWrite(enterValueLed, HIGH);
+    //digitalWrite(clearDataLed, HIGH);
+    //digitalWrite(enterDirectionLed, HIGH);
   }
 
   elapsedTime = millis() - startTime;
@@ -210,7 +219,6 @@ void loop() {
   } else {
     if (elapsedTime > 500) {
 
-      FlashStopLights();
       FlashTurnLights();
 
       byte data;
@@ -229,8 +237,8 @@ void loop() {
             if (pressedButton < 10) {
               //Assign programmed motion value
               Moves[step] = i * 500;
-              Tones[step] = tones[i];
-              PlayTone(tones[pressedButton]);
+              Tones[step] = melody[i];
+              PlayTone(melody[pressedButton]);
               //Advance program step
               step++;
             }
@@ -248,8 +256,8 @@ void loop() {
             else {
               //Assign programmed motion value as is, 12 to 16
               Moves[step] = i;
-              Tones[step] = tones[i];
-              PlayTone(tones[pressedButton]);
+              Tones[step] = melody[i];
+              PlayTone(melody[pressedButton]);
               //Advance program step
               step++;
             }
@@ -300,6 +308,29 @@ void PlayTone(int t) {
   delay(100);
 }
 
+//Init Melody
+void PlayInitTone() {
+  if (!initialized) {
+    int size = sizeof(InitDurations) / sizeof(int);
+
+    for (int note = 0; note < size; note++) {
+      //to calculate the note duration, take one second divided by the note type.
+      //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+      int duration = 1000 / InitDurations[note];
+      tone(speakerPort, InitMelody[note], duration);
+
+      //to distinguish the notes, set a minimum time between them.
+      //the note's duration + 30% seems to work well:
+      int pauseBetweenNotes = duration * 0.30;
+      delay(pauseBetweenNotes);
+
+      //stop the tone playing:
+      noTone(speakerPort);
+      initialized = true;
+    }
+  }
+}
+
 //sequence of tones to play before the program execution
 void PlayStartTone() {
   engineStop = false;
@@ -326,20 +357,24 @@ void PlayStartTone() {
 
 void FlashTurnLights() {
   //rightTurn
-  //leftTurn
-  if (rightTurn) {
-    digitalWrite(turnRight, HIGH);
-    rightTurn = false;
-  } else {
-    digitalWrite(turnRight, LOW);
-    rightTurn = true;
+  if (RIGHTTURN) {
+    if (rightTurn) {
+      digitalWrite(turnRight, HIGH);
+      rightTurn = false;
+    } else {
+      digitalWrite(turnRight, LOW);
+      rightTurn = true;
+    }
   }
-  if (leftTurn) {
-    digitalWrite(turnLeft, HIGH);
-    leftTurn = false;
-  } else {
-    digitalWrite(turnLeft, LOW);
-    leftTurn = true;
+  //leftTurn
+  if (LEFTTURN) {
+    if (leftTurn) {
+      digitalWrite(turnLeft, HIGH);
+      leftTurn = false;
+    } else {
+      digitalWrite(turnLeft, LOW);
+      leftTurn = true;
+    }
   }
 }
 
