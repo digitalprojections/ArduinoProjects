@@ -1,0 +1,35 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+numbers KEYWORD1
+x KEYWORD1
+y KEYWORD1
+h KEYWORD1
+w KEYWORD1
+startTime KEYWORD1
+elapsedTimeKEYWORD1
+inputNumber KEYWORD1
+gameOver KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+indexOf KEYWORD2
+  generateDistinctRandomNumbers KEYWORD2
+  isSolvable KEYWORD2
+  isNumberAlreadyInArray KEYWORD2
+  drawSquareWithNumber KEYWORD2
+  setNumbers KEYWORD2
+  LeftMove KEYWORD2
+  RightMove KEYWORD2
+  UpMove KEYWORD2
+  DownMove KEYWORD2
+FifteenTileGame KEYWORD2
+FTGLoop KEYWORD2
+endGame KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################

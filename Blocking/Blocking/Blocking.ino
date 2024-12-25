@@ -6,7 +6,7 @@ using namespace admux;
 //#include <AccelStepper.h>
 #include "pitches.h"
 
-Mux mux(Pin(2, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
+Mux mux(Pin(A6, INPUT, PinType::Analog), Pinset(6, 7, 8, 9));
 
 //timer main
 int startTime;
@@ -41,6 +41,7 @@ bool LEFTTURN;
 #define stopLigts A3
 #define turnLeft A4
 #define turnRight A5
+#define headLights 2
 
 #define headLights 4
 #define engineerModeLed 5
