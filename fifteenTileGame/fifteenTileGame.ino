@@ -4,6 +4,9 @@
 #include "PingPong.h"
 #include "FlappyBird.h"
 #include "Sprite.h"
+#include <EEPROM.h>
+
+int highestScore;
 
 const String games[] = { "15 tile puzzle", "Flappy Bird", "Ping-pong", "SpaceInvaders" };
 
@@ -47,6 +50,9 @@ void setup(void) {
 }
 
 void loop() {
+
+  highestScore = EEPROM.read(0);
+  Serial.print(highestScore);
 
   elapsedTime = millis() - startTime;
 

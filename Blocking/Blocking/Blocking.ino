@@ -65,7 +65,7 @@ bool ClearData = false;
 //music tone pause?
 #define REST -1
 
-int StepTones[TotalStepCount];
+  int StepTones[TotalStepCount];
 //values
 int StepMoves[TotalStepCount];
 int StepDurations[TotalStepCount];
@@ -374,12 +374,6 @@ void RunMotor() {
         default:
           break;
       }
-      StopMoving();
-      delay(300);
-      PlayTone(StepTones[runningStep]);
-      delay(300);
-      StepMoves[runningStep] = -1;
-      runningStep++;
     } else {
       runningStep = 0;
       programmingMode = true;
@@ -468,12 +462,14 @@ void TurnLeft() {
   RightSignal = false;
 }
 void GoForward() {
-  digitalWrite(motorA1, LOW);
-  digitalWrite(motorA2, HIGH);
-  digitalWrite(motorB1, LOW);
-  digitalWrite(motorB2, HIGH);
-  BackwardMoveSignal = false;
-  digitalWrite(stopLigtsPin, LOW);
+  while () {
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, HIGH);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, HIGH);
+    BackwardMoveSignal = false;
+    digitalWrite(stopLigtsPin, LOW);
+  }
 }
 void GoBackward() {
   digitalWrite(motorA1, HIGH);
