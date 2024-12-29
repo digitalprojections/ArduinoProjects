@@ -27,7 +27,7 @@ bool programmingMode = true;
 
 int const TotalStepCount = 128;
 int runningStep = 0;
-
+int waitInterval = 30; //it controls the acceleration and deceleration
 //bool engineStop = true;
 
 //direction flag to flash the turn signals. The same method is used to flash either or both winkers
@@ -65,7 +65,7 @@ bool ClearData = false;
 //music tone pause?
 #define REST -1
 
-  int StepTones[TotalStepCount];
+int StepTones[TotalStepCount];
 //values
 int StepMoves[TotalStepCount];
 int StepDurations[TotalStepCount];
@@ -311,6 +311,7 @@ void loop() {
           data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
           if (data == LOW) {
             pressedButton = i;
+            Serial.print(pressedButton);
             //0-9 NUMBERS
             if (pressedButton < Mode) {
               //Assign programmed motion value
@@ -322,7 +323,7 @@ void loop() {
                   motionType = BackwardMove;
                 }
                 StepTones[j] = melody[j];
-                StepDurations[j] = 1000;
+                StepDurations[j] = 100;
               }
             } else if (pressedButton == Mode) {
               EngineerMode = !EngineerMode;
@@ -357,15 +358,19 @@ void RunMotor() {
       switch (StepMoves[runningStep]) {
         case BackwardMove:
           GoBackward();
+          Serial.print("Go BACK ");
           break;
         case ForwardMove:
           GoForward();
+          Serial.print("Go FORWARD ");
           break;
         case RightMove:
           TurnRight();
+          Serial.print("Go RIGHT ");
           break;
         case LeftMove:
           TurnLeft();
+          Serial.print("Go LEFT ");
           break;
         case Nine:
           StopMoving();
@@ -375,19 +380,22 @@ void RunMotor() {
           break;
       }
     } else {
-      runningStep = 0;
+      runningStep = TotalStepCount;
       programmingMode = true;
       WaitForUserInput = true;
+      startTime = millis();
+
       StopMoving();
       RightSignal = false;
       BackwardMoveSignal = false;
       HeadLights = false;
       stopLightOn = false;
       digitalWrite(stopLigtsPin, LOW);
+      ClearSteps();
+      //engineStop = true;
+      Serial.print("final: ");
+      Serial.println(runningStep);
     }
-    //engineStop = true;
-    Serial.print("runningStep");
-    Serial.println(runningStep);
   }
 }
 
@@ -441,43 +449,148 @@ void FlashStopLights() {
 }
 
 void TurnRight() {
-  digitalWrite(motorA1, LOW);
-  digitalWrite(motorA2, HIGH);
-  digitalWrite(motorB1, HIGH);
-  digitalWrite(motorB2, LOW);
   digitalWrite(stopLigtsPin, LOW);
-  digitalWrite(BackwardMovePin, LOW);
-  digitalWrite(RightPin, LOW);
-  digitalWrite(stopLigtsPin, LOW);
+
+  int duration = StepDurations[runningStep];
+  int lastHalfLimit = duration - waitInterval;
+  int dur = waitInterval;
+  for (int i = 0; i < duration; i++) {
+    //ON
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, HIGH);
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
+    delay(10);
+    //OFF
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, LOW);
+    delay(dur);
+    if (dur <= 1) {
+      dur = 1;
+    }
+    if (i < lastHalfLimit) {
+      dur--;
+    } else {
+      dur++;
+      if (i >= duration - 1) {
+        //END STEP
+        runningStep++;
+      }
+    }
+  }
+
+  StopMoving();
+
   RightSignal = true;
 }
 void TurnLeft() {
-  digitalWrite(motorA1, HIGH);
-  digitalWrite(motorA2, LOW);
-  digitalWrite(motorB1, LOW);
-  digitalWrite(motorB2, HIGH);
   digitalWrite(BackwardMovePin, HIGH);
-  digitalWrite(RightPin, HIGH);
-  digitalWrite(stopLigtsPin, LOW);
+  int duration = StepDurations[runningStep];
+  int lastHalfLimit = duration - waitInterval;
+  int dur = waitInterval;
+  for (int i = 0; i < duration; i++) {
+    //ON
+    digitalWrite(motorA1, HIGH);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, HIGH);
+    delay(10);
+    //OFF
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, LOW);
+    delay(dur);
+    if (dur <= 1) {
+      dur = 1;
+    }
+    if (i < lastHalfLimit) {
+      dur--;
+    } else {
+      dur++;
+      if (i >= duration - 1) {
+        //END STEP
+        runningStep++;
+      }
+    }
+  }
+
+  StopMoving();
+
   RightSignal = false;
 }
 void GoForward() {
-  while () {
+  BackwardMoveSignal = false;
+  int duration = StepDurations[runningStep];
+  int lastHalfLimit = duration - waitInterval;
+  int dur = waitInterval;
+  for (int i = 0; i < duration; i++) {
+    //ON
     digitalWrite(motorA1, LOW);
     digitalWrite(motorA2, HIGH);
     digitalWrite(motorB1, LOW);
     digitalWrite(motorB2, HIGH);
-    BackwardMoveSignal = false;
-    digitalWrite(stopLigtsPin, LOW);
+    delay(10);
+    //OFF
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, LOW);
+    delay(dur);
+    if (dur <= 1) {
+      dur = 1;
+    }
+    if (i < lastHalfLimit) {
+      dur--;
+    } else {
+      dur++;
+      if (i >= duration - 1) {
+        //END STEP
+        runningStep++;
+      }
+    }
   }
+
+  StopMoving();
+  // delay(300);
+  // PlayTone(StepTones[runningStep]);
+  // delay(300);
+  // StepMoves[runningStep] = -1;
+  //runningStep++;
 }
 void GoBackward() {
-  digitalWrite(motorA1, HIGH);
-  digitalWrite(motorA2, LOW);
-  digitalWrite(motorB1, HIGH);
-  digitalWrite(motorB2, LOW);
-  BackwardMoveSignal = true;
-  digitalWrite(stopLigtsPin, LOW);
+  int duration = StepDurations[runningStep];
+  int lastHalfLimit = duration - waitInterval;
+  int dur = waitInterval;
+  for (int i = 0; i < duration; i++) {
+    //ON
+    digitalWrite(motorA1, HIGH);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
+    delay(10);
+    //OFF
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, LOW);
+    delay(dur);
+    if (dur <= 1) {
+      dur = 1;
+    }
+    if (i < lastHalfLimit) {
+      dur--;
+    } else {
+      dur++;
+      if (i >= duration - 1) {
+        //END STEP
+        runningStep++;
+      }
+    }
+    BackwardMoveSignal = true;
+  }
 }
 void StopMoving() {
   digitalWrite(motorA1, LOW);
