@@ -6,7 +6,9 @@ using namespace admux;
 //#include <AccelStepper.h>
 #include "pitches.h"
 
-Mux mux(Pin(2, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
+int muxSignalPin = 2;
+
+Mux mux(Pin(muxSignalPin, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
 
 //timer main
 int startTime;
@@ -23,26 +25,36 @@ int pressedButton = -1;
 //two states: running and programming
 bool programmingMode = true;
 
-int const programSteps = 128;
+int const TotalStepCount = 128;
 int runningStep = 0;
-bool engineStop = true;
 
+//bool engineStop = true;
+
+//direction flag to flash the turn signals. The same method is used to flash either or both winkers
+bool RightSignal = false;
+bool BackwardMoveSignal = false;
 //turn signals
 bool leftTurn = false;
-bool rightTurn = true;
-bool stopLightOn = true;
-//direction flag to flash the turn signals. The same method is used to flash either or both winkers
-bool RIGHTTURN;
-bool LEFTTURN;
+bool rightTurn = false;
+//STOP, brakes hit
+bool stopLightOn = false;
+//headlights
+bool HeadLights = false;
+
+bool EngineerMode = false;
+bool WaitForUserInput = true;
+
+bool ClearData = false;
 
 //Tones
-#define speakerPort 3
+#define speakerPin 3
 
-#define stopLigts A3
-#define turnLeft A4
-#define turnRight A5
+#define stopLigtsPin A3
+//LED winkers
+#define BackwardMovePin A4
+#define RightPin A5
 
-#define headLights 4
+#define headLightsPin 4
 #define engineerModeLed 5
 
 
@@ -53,36 +65,38 @@ bool LEFTTURN;
 //music tone pause?
 #define REST -1
 
-int Tones[programSteps];
+int StepTones[TotalStepCount];
 //values
-int Moves[programSteps];
+int StepMoves[TotalStepCount];
+int StepDurations[TotalStepCount];
 int step = 0;
 //Move
-enum Motion {
-  Forward,
-  Backward,
-  Right,
-  Left
+enum Direction {
+  Stop = 9,
+  BackwardMove = 12,
+  ForwardMove,
+  RightMove,
+  LeftMove
 };
 
-//All 16 keys?
+//All 16 mux keys
 enum InputKey {
-  One,
-  Ten,
-  Hundred,
-  Four,
-  Five,
-  Six,
-  Seven,
-  Eight,
-  Nine,
-  Mode,
-  ClearBtn,
-  EnterBtn,
-  LeftBtn,
-  BackwardBtn,
-  ForwardBtn,
-  RightBtn
+  One,              //0
+  Ten,              //1
+  Hundred,          //2
+  Four,             //3
+  Five,             //4
+  Six,              //5
+  Seven,            //6
+  Eight,            //7
+  Nine,             //8, also Stop step
+  Mode,             //9
+  ClearBtn,         //10
+  EnterBtn,         //11
+  BackwardMoveBtn,  //12
+  RightBtn,         //13
+  ForwardBtn,       //14
+  BackwardBtn       //15
 };
 
 #pragma region INIT TONE
@@ -161,154 +175,234 @@ void setup() {
   pinMode(enterDirectionLed, OUTPUT);  //A1 blue
   pinMode(clearDataLed, OUTPUT);       //A2 red
 
-  pinMode(turnLeft, OUTPUT);
-  pinMode(turnRight, OUTPUT);
+  //LED winkers
+  pinMode(BackwardMovePin, OUTPUT);
+  pinMode(RightPin, OUTPUT);
+
   //stop tail lights
-  pinMode(stopLigts, OUTPUT);
+  pinMode(stopLigtsPin, OUTPUT);
 
   //Headlights
-  pinMode(headLights, OUTPUT);
+  pinMode(headLightsPin, OUTPUT);
   //headlights OFF
-  digitalWrite(headLights, LOW);
+  digitalWrite(headLightsPin, LOW);
 
   //toggle LED (OFF = toy mode/ ON = engineer mode)
   pinMode(engineerModeLed, OUTPUT);
 
-  //stepper
-  //stepper.setMaxSpeed(1000.0);
-  //stepper.setAcceleration(50.0);
-  //stepper.setSpeed(1000);
-
   //mux SIG input
-  pinMode(2, INPUT);
+  pinMode(muxSignalPin, INPUT);
   // Serial port initialization.
   Serial.begin(9600);
+
+  PlayInitTone();
+  delay(300);
+  ClearSteps();
+}
+
+void SetEngineerModeLed() {
+  if (EngineerMode) {
+    if (digitalRead(engineerModeLed) == HIGH) {
+      digitalWrite(engineerModeLed, LOW);
+    }
+
+  } else {
+    if (digitalRead(engineerModeLed) == LOW) {
+      digitalWrite(engineerModeLed, HIGH);
+    }
+  }
+
+  if (ClearData) {
+    digitalWrite(clearDataLed, HIGH);
+  } else {
+    digitalWrite(clearDataLed, LOW);
+  }
 }
 
 void loop() {
 
-  digitalWrite(engineerModeLed, LOW);
+  SetEngineerModeLed();
+  FlashTurnLights();
 
-  if (programmingMode) {
-    digitalWrite(enterDirectionLed, HIGH);
-    PlayInitTone();
-    //digitalWrite(enterValueLed, HIGH);
-    //digitalWrite(clearDataLed, HIGH);
-  } else {
-    //digitalWrite(enterValueLed, HIGH);
-    //digitalWrite(clearDataLed, HIGH);
-    //digitalWrite(enterDirectionLed, HIGH);
-  }
+  RunMotor();
 
-  elapsedTime = millis() - startTime;
-  if (!programmingMode) {
-    //PlayStartTone();
+  if (EngineerMode) {
+    /*ENGINEER MODE*/
 
-    if (engineStop) {
-      engineStop = false;
-      RunMotor();
+    if (programmingMode) {
+      digitalWrite(enterDirectionLed, HIGH);
+      //digitalWrite(enterValueLed, HIGH);
+      //digitalWrite(clearDataLed, HIGH);
+    } else {
+      digitalWrite(enterDirectionLed, LOW);
+      //digitalWrite(enterValueLed, LOW);
+      //digitalWrite(clearDataLed, LOW);
     }
 
-    if (elapsedTime > 1000 && runningStep < programSteps) {
-      startTime = millis();
-      Serial.print("step: ");
-      Serial.println(runningStep);
-      PlayTone(Tones[runningStep]);
-      digitalWrite(2, HIGH);
+    elapsedTime = millis() - startTime;
+    if (!programmingMode) {
+      if (elapsedTime > 1000 && runningStep < TotalStepCount) {
+        startTime = millis();
+        Serial.print("step: ");
+        Serial.println(runningStep);
+        PlayTone(StepTones[runningStep]);
+      }
+    } else {
+      if (elapsedTime > 100) {
+        byte data;
+        for (byte i = 0; i < mux.channelCount(); i++) {
+          data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
+          if (data == LOW) {
+            pressedButton = i;
+            Serial.println(i);
+            if (step < TotalStepCount) {
+              //0-9 NUMBERS
+              if (pressedButton < Mode) {
+                //Assign programmed motion value
+                StepMoves[step] = i * 500;
+                StepTones[step] = melody[i];
+                PlayTone(melody[pressedButton]);
+                //Advance program step
+                step++;
+              } else if (pressedButton == Mode) {
+                EngineerMode = !EngineerMode;
+              }
+              //10=Clear, 11=Enter
+              else if (pressedButton == ClearBtn) {
+                //Reset
+                step = 0;
+                ClearSteps();
+              } else if (pressedButton == EnterBtn) {
+                //anytime Enter is pressed, the car starts executing the program
+                //Start move
+                programmingMode = false;
+              }
+              //12-15 DIRECTIONS, BackwardMove, DOWN, UP, RIGHT respectively
+              else {
+                //Assign programmed motion value as is, 12 to 16
+                StepMoves[step] = i;
+                StepTones[step] = melody[i];
+                PlayTone(melody[pressedButton]);
+                //Advance program step
+                step++;
+              }
+            } else {
+              if (pressedButton == EnterBtn)
+                pressedButton = -1;
+              //Start move
+              programmingMode = false;
+              step = 0;
+            }
+            //next input OK
+          }
+        }
+        startTime = millis();
+        noTone(speakerPin);
+      }
     }
   } else {
-    if (elapsedTime > 500) {
-
-      FlashTurnLights();
-
-      byte data;
-      for (byte i = 0; i < mux.channelCount(); i++) {
-
-        data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
-
-        if (data == LOW) {
-
-          pressedButton = i;
-
-          Serial.println(i);
-          if (step < programSteps) {
-
+    /*EngineerMode FALSE, "ToyMode", Preset MODE*/
+    //user input expected
+    if (WaitForUserInput) {
+      elapsedTime = millis() - startTime;
+      if (elapsedTime > 100) {
+        byte data;
+        for (byte i = 0; i < mux.channelCount(); i++) {
+          data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
+          if (data == LOW) {
+            pressedButton = i;
             //0-9 NUMBERS
-            if (pressedButton < 10) {
+            if (pressedButton < Mode) {
               //Assign programmed motion value
-              Moves[step] = i * 500;
-              Tones[step] = melody[i];
-              PlayTone(melody[pressedButton]);
-              //Advance program step
-              step++;
+              int motionType = BackwardMove;
+              for (int j = 0; j < 10; j++) {
+                StepMoves[j] = motionType;
+                motionType++;
+                if (motionType > LeftMove) {
+                  motionType = BackwardMove;
+                }
+                StepTones[j] = melody[j];
+                StepDurations[j] = 1000;
+              }
+            } else if (pressedButton == Mode) {
+              EngineerMode = !EngineerMode;
             }
             //10=Clear, 11=Enter
             else if (pressedButton == ClearBtn) {
               //Reset
-              step = 0;
               ClearSteps();
             } else if (pressedButton == EnterBtn) {
               //anytime Enter is pressed, the car starts executing the program
               //Start move
-              programmingMode = false;
+              runningStep = 0;
+              WaitForUserInput = false;
+              programmingMode = false;  //not related to this section of MODE. Only relevant to EngineerMode
+              HeadLights = true;
+              digitalWrite(stopLigtsPin, LOW);
             }
-            //12-15 DIRECTIONS, LEFT, DOWN, UP, RIGHT respectively
-            else {
-              //Assign programmed motion value as is, 12 to 16
-              Moves[step] = i;
-              Tones[step] = melody[i];
-              PlayTone(melody[pressedButton]);
-              //Advance program step
-              step++;
-            }
-          } else {
-            if (pressedButton == EnterBtn)
-              pressedButton = -1;
-            //Start move
-            programmingMode = false;
-            step = 0;
           }
-          //next input OK
         }
+        startTime = millis();
+        noTone(speakerPin);
       }
-      startTime = millis();
-
-      noTone(speakerPort);
+    } else {
+      /*WaitForUserInput FALSE*/
     }
   }
 }
 
 void RunMotor() {
-
-  while (!engineStop) {
-    if (runningStep < programSteps) {
-      //stepper.moveTo(0);
-      //stepper2.moveTo(0);
-      //stepper.move(Moves[runningStep]);
-      //stepper.runToNewPosition(Moves[runningStep]);
-
-      GoForward();
-      delay(Moves[runningStep]);
+  if (!WaitForUserInput) {
+    if (runningStep < TotalStepCount && StepMoves[runningStep] >= 0) {
+      switch (StepMoves[runningStep]) {
+        case BackwardMove:
+          GoBackward();
+          break;
+        case ForwardMove:
+          GoForward();
+          break;
+        case RightMove:
+          TurnRight();
+          break;
+        case LeftMove:
+          TurnLeft();
+          break;
+        case Nine:
+          StopMoving();
+          delay(StepDurations[runningStep]);
+          break;
+        default:
+          break;
+      }
       StopMoving();
       delay(300);
+      PlayTone(StepTones[runningStep]);
+      delay(300);
+      StepMoves[runningStep] = -1;
       runningStep++;
     } else {
       runningStep = 0;
       programmingMode = true;
+      WaitForUserInput = true;
       StopMoving();
+      RightSignal = false;
+      BackwardMoveSignal = false;
+      HeadLights = false;
+      stopLightOn = false;
+      digitalWrite(stopLigtsPin, LOW);
     }
-    engineStop = true;
+    //engineStop = true;
     Serial.print("runningStep");
     Serial.println(runningStep);
   }
 }
 
 void PlayTone(int t) {
-  tone(speakerPort, t, 100);
-  delay(100);
+  tone(speakerPin, t, 300);
 }
 
 //Init Melody
+#pragma region PlayInitTone
 void PlayInitTone() {
   if (!initialized) {
     int size = sizeof(InitDurations) / sizeof(int);
@@ -317,7 +411,7 @@ void PlayInitTone() {
       //to calculate the note duration, take one second divided by the note type.
       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
       int duration = 1000 / InitDurations[note];
-      tone(speakerPort, InitMelody[note], duration);
+      tone(speakerPin, InitMelody[note], duration);
 
       //to distinguish the notes, set a minimum time between them.
       //the note's duration + 30% seems to work well:
@@ -325,97 +419,90 @@ void PlayInitTone() {
       delay(pauseBetweenNotes);
 
       //stop the tone playing:
-      noTone(speakerPort);
+      noTone(speakerPin);
       initialized = true;
     }
   }
 }
-
-//sequence of tones to play before the program execution
-void PlayStartTone() {
-  engineStop = false;
-
-  int size = sizeof(durations) / sizeof(int);
-
-  for (int note = 0; note < size; note++) {
-    //to calculate the note duration, take one second divided by the note type.
-    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
-    int duration = 1000 / durations[note];
-    tone(speakerPort, melody[note], duration);
-
-    //to distinguish the notes, set a minimum time between them.
-    //the note's duration + 30% seems to work well:
-    int pauseBetweenNotes = duration * 1.30;
-    delay(pauseBetweenNotes);
-
-    //stop the tone playing:
-    noTone(speakerPort);
-  }
-  //lastly
-  engineStop = true;
-}
+#pragma endregion
 
 void FlashTurnLights() {
   //rightTurn
-  if (RIGHTTURN) {
-    if (rightTurn) {
-      digitalWrite(turnRight, HIGH);
-      rightTurn = false;
-    } else {
-      digitalWrite(turnRight, LOW);
-      rightTurn = true;
-    }
-  }
-  //leftTurn
-  if (LEFTTURN) {
-    if (leftTurn) {
-      digitalWrite(turnLeft, HIGH);
-      leftTurn = false;
-    } else {
-      digitalWrite(turnLeft, LOW);
-      leftTurn = true;
-    }
+
+  if (HeadLights) {
+    digitalWrite(headLightsPin, HIGH);
+  } else {
+    digitalWrite(headLightsPin, LOW);
   }
 }
 
 void FlashStopLights() {
   if (stopLightOn) {
-    digitalWrite(stopLigts, HIGH);
+    digitalWrite(stopLigtsPin, HIGH);
     stopLightOn = false;
   } else {
-    digitalWrite(stopLigts, LOW);
+    digitalWrite(stopLigtsPin, LOW);
     stopLightOn = true;
   }
 }
 
-void GoForward() {
-  digitalWrite(motorA1, HIGH);
-  digitalWrite(motorA2, LOW);
-  digitalWrite(motorB1, HIGH);
-  digitalWrite(motorB2, LOW);
-}
-void GoRight() {
+void TurnRight() {
   digitalWrite(motorA1, LOW);
-  digitalWrite(motorA2, LOW);
+  digitalWrite(motorA2, HIGH);
   digitalWrite(motorB1, HIGH);
   digitalWrite(motorB2, LOW);
+  digitalWrite(stopLigtsPin, LOW);
+  digitalWrite(BackwardMovePin, LOW);
+  digitalWrite(RightPin, LOW);
+  digitalWrite(stopLigtsPin, LOW);
+  RightSignal = true;
 }
-void GoLeft() {
+void TurnLeft() {
   digitalWrite(motorA1, HIGH);
   digitalWrite(motorA2, LOW);
   digitalWrite(motorB1, LOW);
+  digitalWrite(motorB2, HIGH);
+  digitalWrite(BackwardMovePin, HIGH);
+  digitalWrite(RightPin, HIGH);
+  digitalWrite(stopLigtsPin, LOW);
+  RightSignal = false;
+}
+void GoForward() {
+  digitalWrite(motorA1, LOW);
+  digitalWrite(motorA2, HIGH);
+  digitalWrite(motorB1, LOW);
+  digitalWrite(motorB2, HIGH);
+  BackwardMoveSignal = false;
+  digitalWrite(stopLigtsPin, LOW);
+}
+void GoBackward() {
+  digitalWrite(motorA1, HIGH);
+  digitalWrite(motorA2, LOW);
+  digitalWrite(motorB1, HIGH);
   digitalWrite(motorB2, LOW);
+  BackwardMoveSignal = true;
+  digitalWrite(stopLigtsPin, LOW);
 }
 void StopMoving() {
   digitalWrite(motorA1, LOW);
   digitalWrite(motorA2, LOW);
   digitalWrite(motorB1, LOW);
   digitalWrite(motorB2, LOW);
+  BackwardMoveSignal = false;
+  digitalWrite(stopLigtsPin, HIGH);
 }
 
 //clear steps
 void ClearSteps() {
+  for (int i = 0; i < TotalStepCount; i++) {
+    StepMoves[i] = -1;
+    StepDurations[i] = -1;
+    StepTones[i] = -1;
+  }
+  HeadLights = false;
+  digitalWrite(clearDataLed, HIGH);
   PlayTone(NOTE_A5);
   delay(200);
-  noTone(speakerPort);
+  digitalWrite(clearDataLed, LOW);
+  noTone(speakerPin);
 }
