@@ -219,6 +219,15 @@ PNG_STATIC uint8_t PNGMakeMask(PNGDRAW *pDraw, uint8_t *pMask, uint8_t ucThresho
     } // switch on pixel type
     return cHasOpaque; // let the caller know if any pixels are opaque
 } /* PNGMakeMask() */
+#ifdef ARDUINO_ESP32S3_DEV
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+void s3_rgb565(uint8_t *pSrc, uint8_t *pDest, int iCount, bool bBigEndian);
+#ifdef __cplusplus
+};
+#endif
+#endif
 //
 // Convert a line of native PNG pixels into RGB565
 // handles all standard pixel types
@@ -228,7 +237,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
 {
     int x, j;
     uint16_t usPixel, *pDest = pPixels;
-    uint8_t c, a, *pPal, *s = pDraw->pPixels;
+    uint8_t c=0, a, *pPal, *s = pDraw->pPixels;
     
     switch (pDraw->iPixelType) {
         case PNG_PIXEL_GRAY_ALPHA:
@@ -243,15 +252,33 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
             }
             break;
         case PNG_PIXEL_GRAYSCALE:
-            for (x=0; x<pDraw->iWidth; x++) {
-                c = *s++;
-                usPixel = (c >> 3); // blue
-                usPixel |= ((c >> 2) << 5); // green
-                usPixel |= ((c >> 3) << 11); // red
-                if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
-                    usPixel = __builtin_bswap16(usPixel);
-                *pDest++ = usPixel;
-            }
+            switch (pDraw->iBpp) {
+               case 8:
+                for (x=0; x<pDraw->iWidth; x++) {
+                    c = *s++;
+                    usPixel = (c >> 3); // blue
+                    usPixel |= ((c >> 2) << 5); // green
+                    usPixel |= ((c >> 3) << 11); // red
+                    if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                        usPixel = __builtin_bswap16(usPixel);
+                    *pDest++ = usPixel;
+                }
+                break;
+                case 1:
+                   for (x=0; x<pDraw->iWidth; x++) {
+                       if ((x & 7) == 0) {
+                           c = *s++;
+                       }
+                       if (c & 0x80) {
+                           usPixel = 0xffff;
+                       } else {
+                           usPixel = 0;
+                       }
+                       *pDest++ = usPixel;
+                       c <<= 1;
+                   }
+                break;
+            } // switch on bpp
             break;
         case PNG_PIXEL_TRUECOLOR:
             for (x=0; x<pDraw->iWidth; x++) {
@@ -265,7 +292,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
             }
             break;
         case PNG_PIXEL_INDEXED: // palette color (can be 1/2/4 or 8 bits per pixel)
-            if (pDraw->pFastPalette) { // faster RGB565 palette exists
+            if (pDraw->pFastPalette && !pDraw->iHasAlpha) { // faster RGB565 palette exists
                switch (pDraw->iBpp) {
                    case 8:
                        for (x=0; x<pDraw->iWidth; x++) {
@@ -302,32 +329,47 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                        }
                        break;
                    case 1:
-                       for (x=0; x<pDraw->iWidth; x+=4) {
-                           c = *s++;
-                           for (j=0; j<8; j++) { // work on pairs of bits
-                               usPixel = pDraw->pFastPalette[c >> 7];
-                               if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
-                                   usPixel = __builtin_bswap16(usPixel);
-                               *pDest++ = usPixel;
-                               c <<= 1;
+                       for (x=0; x<pDraw->iWidth; x++) {
+                           if ((x & 7) == 0) {
+                               c = *s++;
                            }
+                           usPixel = pDraw->pFastPalette[c >> 7];
+                           if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                               usPixel = __builtin_bswap16(usPixel);
+                           *pDest++ = usPixel;
+                           c <<= 1;
                        }
                        break;
                } // switch on bpp 
                return;
             }
             switch (pDraw->iBpp) {
-                case 8:
-                    for (x=0; x<pDraw->iWidth; x++) {
-                        c = *s++;
-                        pPal = &pDraw->pPalette[c * 3];
-                        usPixel = (pPal[2] >> 3); // blue
-                        usPixel |= ((pPal[1] >> 2) << 5); // green
-                        usPixel |= ((pPal[0] >> 3) << 11); // red
-                        if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
-                            usPixel = __builtin_bswap16(usPixel);
-                        *pDest++ = usPixel;
-                    }
+                case 8: // 8-bit palette also supports palette alpha
+                    if (pDraw->iHasAlpha) { // use the alpha to modify the palette
+                        for (x=0; x<pDraw->iWidth; x++) {
+                            int a;
+                            c = *s++;
+                            a = pDraw->pPalette[768+c]; // get alpha
+                            pPal = &pDraw->pPalette[c * 3];
+                            usPixel = ((pPal[2] * a) >> 11); // blue
+                            usPixel |= (((pPal[1] * a) >> 10) << 5); // green
+                            usPixel |= (((pPal[0] * a) >> 11) << 11); // red
+                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                                usPixel = __builtin_bswap16(usPixel);
+                            *pDest++ = usPixel;
+                        } // for x
+                    } else {
+                        for (x=0; x<pDraw->iWidth; x++) {
+                            c = *s++;
+                            pPal = &pDraw->pPalette[c * 3];
+                            usPixel = (pPal[2] >> 3); // blue
+                            usPixel |= ((pPal[1] >> 2) << 5); // green
+                            usPixel |= ((pPal[0] >> 3) << 11); // red
+                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                                usPixel = __builtin_bswap16(usPixel);
+                            *pDest++ = usPixel;
+                        } // for x
+                    } // not alpha palette
                     break;
                 case 4:
                     for (x=0; x<pDraw->iWidth; x+=2) {
@@ -364,18 +406,18 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     }
                     break;
                 case 1:
-                    for (x=0; x<pDraw->iWidth; x+=4) {
-                        c = *s++;
-                        for (j=0; j<8; j++) { // work on pairs of bits
-                            pPal = &pDraw->pPalette[(c >> 7) * 3];
-                            usPixel = (pPal[2] >> 3); // blue
-                            usPixel |= ((pPal[1] >> 2) << 5); // green
-                            usPixel |= ((pPal[0] >> 3) << 11); // red
-                            if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
-                                usPixel = __builtin_bswap16(usPixel);
-                            *pDest++ = usPixel;
-                            c <<= 1;
+                    for (x=0; x<pDraw->iWidth; x++) {
+                        if ((x & 7) == 0) {
+                            c = *s++;
                         }
+                        pPal = &pDraw->pPalette[(c >> 7) * 3];
+                        usPixel = (pPal[2] >> 3); // blue
+                        usPixel |= ((pPal[1] >> 2) << 5); // green
+                        usPixel |= ((pPal[0] >> 3) << 11); // red
+                        if (iEndiannes == PNG_RGB565_BIG_ENDIAN)
+                            usPixel = __builtin_bswap16(usPixel);
+                        *pDest++ = usPixel;
+                        c <<= 1;
                     }
                     break;
             } // switch on bits per pixel
@@ -411,6 +453,9 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     s += 4; // skip alpha
                 }
             } else { // ignore alpha
+#ifdef ARDUINO_ESP32S3_DEV
+                s3_rgb565(s, (uint8_t *)pDest, pDraw->iWidth, (iEndiannes == PNG_RGB565_BIG_ENDIAN));
+#else
                 for (x=0; x<pDraw->iWidth; x++) {
                     usPixel = (s[2] >> 3); // blue
                     usPixel |= ((s[1] >> 2) << 5); // green
@@ -420,6 +465,7 @@ PNG_STATIC void PNGRGB565(PNGDRAW *pDraw, uint16_t *pPixels, int iEndiannes, uin
                     *pDest++ = usPixel;
                     s += 4; // skip alpha
                 }
+#endif
             }
             break;
     }
@@ -596,7 +642,7 @@ PNG_STATIC void DeFilter(uint8_t *pCurr, uint8_t *pPrev, int iWidth, int iPitch)
                    b = *pPrev++;
                    p = b - c;
                    pc = a - c;
-                    // asume no native ABS() instruction
+                    // assume no native ABS() instruction
                    pa = p < 0 ? -p : p;
                    pb = pc < 0 ? -pc : pc;
                    pc = (p + pc) < 0 ? -(p + pc) : p + pc;
@@ -644,8 +690,13 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
         return 0;
     }
     // Use internal buffer to maintain the current and previous lines
-    pCurr = pPage->ucPixels;
-    pPrev = &pPage->ucPixels[pPage->iPitch+1];
+    y = (int)(intptr_t)&pPage->ucPixels[0];
+    y &= 15; // make sure we're 16-byte aligned, -1 for filter byte
+    y += (15 - y);
+    pCurr = &pPage->ucPixels[y]; // so that the pixels are 16-byte aligned
+    y += pPage->iPitch + 1; // both lines are 16-byte (minus 1)
+    y += (15 - (y & 15));
+    pPrev = &pPage->ucPixels[y];
     pPage->iError = PNG_SUCCESS;
     // Start decoding the image
     bDone = FALSE;
@@ -749,11 +800,19 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                         // number of bytes remaining in buffer
                         iBytesRead -= iOffset;
                     }
-                    d_stream.next_in  = &pPage->ucFileBuf[iOffset];
-                    d_stream.avail_in = iBytesRead;
-                    iLen -= iBytesRead;
-                    if (iLen < 0) iLen = 0;
-                    iOffset += iBytesRead;
+                    if (iBytesRead > iLen) { // we read too much
+                        d_stream.next_in  = &pPage->ucFileBuf[iOffset];
+                        d_stream.avail_in = iLen;
+                        iOffset += iLen; // point to start of next marker
+                        iBytesRead -= iLen; // keep remaining byte count
+                        iLen = 0; // every byte will be decoded
+                    } else {
+                        d_stream.next_in  = &pPage->ucFileBuf[iOffset];
+                        d_stream.avail_in = iBytesRead;
+                        iLen -= iBytesRead;
+                        iOffset += iBytesRead;
+                        iBytesRead = 0;
+                    }
             //        if (iMarker == 0x66644154) // data starts at offset 4 in APNG frame data block
             //        {
             //            d_stream.next_in += 4;
@@ -777,6 +836,7 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                                 pngd.pFastPalette = (iOptions & PNG_FAST_PALETTE) ? (uint16_t *)&pPage->ucPixels[sizeof(pPage->ucPixels)-512] : NULL;
                                 pngd.pPixels = pCurr+1;
                                 pngd.iPixelType = pPage->ucPixelType;
+                                pngd.iHasAlpha = pPage->iHasAlpha;
                                 pngd.iBpp = pPage->ucBpp;
                                 pngd.y = y;
                                 (*pPage->pfnDraw)(&pngd);
@@ -806,9 +866,15 @@ PNG_STATIC int DecodePNG(PNGIMAGE *pPage, void *pUser, int iOptions)
                 } // while (iLen)
                 if (y != pPage->iHeight && iFileOffset < pPage->PNGFile.iSize) {
                     // need to read more IDAT chunks
-                    iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
-                    iFileOffset += iBytesRead;
-                    iOffset = 0;
+                    if (iBytesRead) { // data remaining in buffer
+                        // move the data down
+                        memmove(pPage->ucFileBuf, &pPage->ucFileBuf[iOffset], iBytesRead);
+                        iOffset = 0;
+                    } else {
+                        iBytesRead = (*pPage->pfnRead)(&pPage->PNGFile, pPage->ucFileBuf,  PNG_FILE_BUF_SIZE);
+                        iFileOffset += iBytesRead;
+                        iOffset = 0;
+                    }
                 }
                 break;
                 //               case 0x69545874: //'iTXt'

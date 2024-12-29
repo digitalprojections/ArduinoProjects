@@ -49,8 +49,8 @@
 /* Defines and variables */
 #define PNG_FILE_BUF_SIZE 2048
 // Number of bytes to reserve for current and previous lines
-// Defaults to 640 32-bit pixels max width
-#define PNG_MAX_BUFFERED_PIXELS (640*4 + 1)
+// Defaults to 480 32-bit pixels max width
+#define PNG_MAX_BUFFERED_PIXELS ((480*4 + 1)*2)
 // PNG filter type
 enum {
     PNG_FILTER_NONE=0,
@@ -105,6 +105,7 @@ typedef struct png_draw_tag
     int iPitch; // bytes per line
     int iPixelType; // PNG pixel type (0,2,3,4,6)
     int iBpp; // bits per color stimulus
+    int iHasAlpha; // flag indicating the presence of an alpha palette
     void *pUser; // user supplied pointer
     uint8_t *pPalette;
     uint16_t *pFastPalette;

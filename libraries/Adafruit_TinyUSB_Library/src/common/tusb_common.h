@@ -65,6 +65,7 @@
 // Standard Headers
 #include <stdbool.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
@@ -78,7 +79,7 @@
 
 //--------------------------------------------------------------------+
 // Optional API implemented by application if needed
-// TODO move to a more ovious place/file
+// TODO move to a more obvious place/file
 //--------------------------------------------------------------------+
 
 // flush data cache
