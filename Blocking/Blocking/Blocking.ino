@@ -2,13 +2,18 @@
 #include <Arduino.h>
 #include "Mux.h"
 using namespace admux;
+#include <Adafruit_GFX.h>     // Core graphics library
+#include <Adafruit_ST7789.h>  // Hardware-specific library for ST7789
+#include <SPI.h>
+#include "Adafruit_ST77xx.h"
+#include <Adafruit_PCF8574.h>
 
 //#include <AccelStepper.h>
 #include "pitches.h"
 
 int muxSignalPin = 2;
 
-Mux mux(Pin(muxSignalPin, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
+Mux mux(Pin(muxSignalPin, INPUT, PinType::Digital), Pinset(8, 7, 6, 4));
 
 //timer main
 int startTime;
@@ -27,7 +32,7 @@ bool programmingMode = true;
 
 int const TotalStepCount = 128;
 int runningStep = 0;
-int waitInterval = 30; //it controls the acceleration and deceleration
+int waitInterval = 30;  //it controls the acceleration and deceleration
 //bool engineStop = true;
 
 //direction flag to flash the turn signals. The same method is used to flash either or both winkers
@@ -47,23 +52,33 @@ bool WaitForUserInput = true;
 bool ClearData = false;
 
 //Tones
-#define speakerPin 3
+#define speakerPin A2
 
 #define stopLigtsPin A3
 //LED winkers
-#define BackwardMovePin A4
-#define RightPin A5
+#define BackwardMovePin A1
+#define RightPin A0
 
-#define headLightsPin 4
+#define headLightsPin 3
 #define engineerModeLed 5
 
 
-#define enterValueLed A0
-#define enterDirectionLed A1
-#define clearDataLed A2
+#define p_enterValueLed 5
+#define p_enterDirectionLed 6
+#define p_clearDataLed 7
 
+
+#define TFT_CS 8    // if your display has CS pin
+#define TFT_RST 10  // reset pin
+#define TFT_DC 9    // data pin
+#define TFT_MOSI 11
+#define TFT_SCLK 13
 //music tone pause?
 #define REST -1
+
+Adafruit_PCF8574 pcf;
+
+Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 int StepTones[TotalStepCount];
 //values
@@ -159,21 +174,41 @@ int durations[] = {
 };
 #pragma endregion
 
-int motorA1 = 12;
-int motorA2 = 11;
-int motorB1 = 10;
-int motorB2 = 13;
+int p_motorA1 = 1;
+int p_motorA2 = 2;
+int p_motorB1 = 3;
+int p_motorB2 = 4;
 
 void setup() {
+  // Use this initializer (uncomment) if using a 1.3" or 1.54" 240x240 TFT:
+  tft.init(240, 240, SPI_MODE3);  // Init ST7789 240x240
+  tft.setRotation(2);
 
-  pinMode(motorA1, OUTPUT);
-  pinMode(motorA2, OUTPUT);
-  pinMode(motorB1, OUTPUT);
-  pinMode(motorB2, OUTPUT);
+  Serial.println(F("Initialized"));
+  // tft print function!
+  tft.setTextSize(4);
+  tft.setTextColor(ST77XX_BLACK);
+  tft.setCursor(20, 110);
+  tft.fillRect(0, 0, 240, 240, ST77XX_BLUE);
 
-  pinMode(enterValueLed, OUTPUT);      //A0 green
-  pinMode(enterDirectionLed, OUTPUT);  //A1 blue
-  pinMode(clearDataLed, OUTPUT);       //A2 red
+  tft.fillRect(0, 105, 240, 40, ST77XX_ORANGE);
+  tft.println("You Won!");
+
+  if (!pcf.begin(0x20, &Wire)) {
+    Serial.println("Couldn't find PCF8574");
+    while (1)
+      ;
+  }
+  Serial.println("Could find PCF8574");
+
+  pcf.pinMode(p_motorA1, OUTPUT);
+  pcf.pinMode(p_motorA2, OUTPUT);
+  pcf.pinMode(p_motorB1, OUTPUT);
+  pcf.pinMode(p_motorB2, OUTPUT);
+
+  pcf.pinMode(p_clearDataLed, OUTPUT);       //7 green
+  pcf.pinMode(p_enterDirectionLed, OUTPUT);  //6 blue
+  pcf.pinMode(p_enterValueLed, OUTPUT);      //5 red
 
   //LED winkers
   pinMode(BackwardMovePin, OUTPUT);
@@ -201,6 +236,12 @@ void setup() {
 }
 
 void SetEngineerModeLed() {
+
+  pcf.digitalWrite(7, LOW);  // turn LED on by sinking current to ground
+  delay(100);
+  pcf.digitalWrite(7, HIGH);  // turn LED off by turning off sinking transistor
+  delay(100);
+
   if (EngineerMode) {
     if (digitalRead(engineerModeLed) == HIGH) {
       digitalWrite(engineerModeLed, LOW);
@@ -213,9 +254,9 @@ void SetEngineerModeLed() {
   }
 
   if (ClearData) {
-    digitalWrite(clearDataLed, HIGH);
+    digitalWrite(p_clearDataLed, HIGH);
   } else {
-    digitalWrite(clearDataLed, LOW);
+    digitalWrite(p_clearDataLed, LOW);
   }
 }
 
@@ -230,13 +271,13 @@ void loop() {
     /*ENGINEER MODE*/
 
     if (programmingMode) {
-      digitalWrite(enterDirectionLed, HIGH);
-      //digitalWrite(enterValueLed, HIGH);
-      //digitalWrite(clearDataLed, HIGH);
+      digitalWrite(p_enterValueLed, HIGH);
+      //digitalWrite(p_, HIGH);
+      //digitalWrite(p_, HIGH);
     } else {
-      digitalWrite(enterDirectionLed, LOW);
-      //digitalWrite(enterValueLed, LOW);
-      //digitalWrite(clearDataLed, LOW);
+      digitalWrite(p_enterValueLed, LOW);
+      //digitalWrite(p_, LOW);
+      //digitalWrite(p_, LOW);
     }
 
     elapsedTime = millis() - startTime;
@@ -456,16 +497,16 @@ void TurnRight() {
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, HIGH);
-    digitalWrite(motorB1, HIGH);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(p_motorA1, LOW);
+    digitalWrite(p_motorA2, HIGH);
+    digitalWrite(p_motorB1, HIGH);
+    digitalWrite(p_motorB2, LOW);
     delay(10);
     //OFF
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(p_motorA1, LOW);
+    digitalWrite(p_motorA2, LOW);
+    digitalWrite(p_motorB1, LOW);
+    digitalWrite(p_motorB2, LOW);
     delay(dur);
     if (dur <= 1) {
       dur = 1;
@@ -492,16 +533,16 @@ void TurnLeft() {
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, HIGH);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, HIGH);
+    digitalWrite(p_motorA1, HIGH);
+    digitalWrite(p_motorA2, LOW);
+    digitalWrite(p_motorB1, LOW);
+    digitalWrite(p_motorB2, HIGH);
     delay(10);
     //OFF
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(p_motorA1, LOW);
+    digitalWrite(p_motorA2, LOW);
+    digitalWrite(p_motorB1, LOW);
+    digitalWrite(p_motorB2, LOW);
     delay(dur);
     if (dur <= 1) {
       dur = 1;
@@ -528,16 +569,16 @@ void GoForward() {
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, HIGH);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, HIGH);
+    digitalWrite(p_motorA1, LOW);
+    digitalWrite(p_motorA2, HIGH);
+    digitalWrite(p_motorB1, LOW);
+    digitalWrite(p_motorB2, HIGH);
     delay(10);
     //OFF
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(p_motorA1, LOW);
+    digitalWrite(p_motorA2, LOW);
+    digitalWrite(p_motorB1, LOW);
+    digitalWrite(p_motorB2, LOW);
     delay(dur);
     if (dur <= 1) {
       dur = 1;
@@ -566,16 +607,16 @@ void GoBackward() {
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, HIGH);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, HIGH);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(p_motorA1, HIGH);
+    digitalWrite(p_motorA2, LOW);
+    digitalWrite(p_motorB1, HIGH);
+    digitalWrite(p_motorB2, LOW);
     delay(10);
     //OFF
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(p_motorA1, LOW);
+    digitalWrite(p_motorA2, LOW);
+    digitalWrite(p_motorB1, LOW);
+    digitalWrite(p_motorB2, LOW);
     delay(dur);
     if (dur <= 1) {
       dur = 1;
@@ -593,10 +634,10 @@ void GoBackward() {
   }
 }
 void StopMoving() {
-  digitalWrite(motorA1, LOW);
-  digitalWrite(motorA2, LOW);
-  digitalWrite(motorB1, LOW);
-  digitalWrite(motorB2, LOW);
+  digitalWrite(p_motorA1, LOW);
+  digitalWrite(p_motorA2, LOW);
+  digitalWrite(p_motorB1, LOW);
+  digitalWrite(p_motorB2, LOW);
   BackwardMoveSignal = false;
   digitalWrite(stopLigtsPin, HIGH);
 }
@@ -609,9 +650,9 @@ void ClearSteps() {
     StepTones[i] = -1;
   }
   HeadLights = false;
-  digitalWrite(clearDataLed, HIGH);
+  digitalWrite(p_clearDataLed, HIGH);
   PlayTone(NOTE_A5);
   delay(200);
-  digitalWrite(clearDataLed, LOW);
+  digitalWrite(p_clearDataLed, LOW);
   noTone(speakerPin);
 }
