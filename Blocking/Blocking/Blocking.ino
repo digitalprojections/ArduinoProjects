@@ -6,9 +6,9 @@ using namespace admux;
 //#include <AccelStepper.h>
 #include "pitches.h"
 
-int muxSignalPin = 2;
+int muxSigDataPin = 2;
 
-Mux mux(Pin(muxSignalPin, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
+Mux mux(Pin(muxSigDataPin, INPUT, PinType::Digital), Pinset(6, 7, 8, 9));
 
 //timer main
 int startTime;
@@ -19,6 +19,13 @@ int elapsedTimeCar;
 //timer tone
 int startTimeTone;
 int elapsedTimeTone;
+//timer winkers
+int startWink;
+int elapsedWink;
+//timer move: Forward, backward, right, left
+int startMove;
+int elapsedMove;
+
 
 int pressedButton = -1;
 
@@ -27,7 +34,8 @@ bool programmingMode = true;
 
 int const TotalStepCount = 128;
 int runningStep = 0;
-int waitInterval = 30; //it controls the acceleration and deceleration
+int presetStep = 0;
+int waitInterval = 30;  //it controls the acceleration and deceleration
 //bool engineStop = true;
 
 //direction flag to flash the turn signals. The same method is used to flash either or both winkers
@@ -51,7 +59,7 @@ bool ClearData = false;
 
 #define stopLigtsPin A3
 //LED winkers
-#define BackwardMovePin A4
+#define LeftPin A4
 #define RightPin A5
 
 #define headLightsPin 4
@@ -78,6 +86,148 @@ enum Direction {
   RightMove,
   LeftMove
 };
+
+#pragma region PRESET MOTIONS
+//Presets
+enum Preset {
+  PRESET_1,
+  PRESET_2,
+  PRESET_3,
+  PRESET_4,
+  PRESET_5,
+  PRESET_6,
+  PRESET_7,
+  PRESET_8,
+  PRESET_9
+};
+
+//Motion Model
+typedef struct {
+  int motion, duration;
+} motionModel;
+
+//Preset motions
+motionModel preset_one[] = {
+  { ForwardMove, 100 },
+  { BackwardMove, 100 },
+  { LeftMove, 50 },
+  { ForwardMove, 100 },
+  { BackwardMove, 100 },
+  { RightMove, 50 },
+  { ForwardMove, 100 },
+  { RightMove, 50 },
+  { BackwardMove, 100 }
+};
+
+motionModel preset_two[] = {
+  { RightMove, 100 },
+  { ForwardMove, 100 },
+  { LeftMove, 50 },
+  { ForwardMove, 100 },
+  { BackwardMove, 100 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { BackwardMove, 100 }
+};
+
+motionModel preset_three[] = {
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 }
+};
+
+motionModel preset_four[] = {
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+};
+
+motionModel preset_five[] = {
+  { ForwardMove, 100 },
+  { RightMove, 150 },
+  { ForwardMove, 100 }
+};
+
+motionModel preset_six[] = {
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { LeftMove, 50 }
+};
+
+motionModel preset_seven[] = {
+  { BackwardMove, 50 },
+  { ForwardMove, 50 },
+  { BackwardMove, 60 },
+  { ForwardMove, 60 },
+  { BackwardMove, 70 },
+  { ForwardMove, 70 },
+  { BackwardMove, 80 },
+  { ForwardMove, 80 },
+  { BackwardMove, 100 },
+  { ForwardMove, 100 }
+};
+
+motionModel preset_eight[] = {
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+
+  { ForwardMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 50 },
+  { LeftMove, 50 }
+};
+
+motionModel preset_nine[] = {
+  { BackwardMove, 50 },
+  { RightMove, 50 },
+  { BackwardMove, 50 },
+  { RightMove, 50 },
+  { BackwardMove, 50 },
+  { RightMove, 50 },
+  { BackwardMove, 50 },
+  { RightMove, 50 },
+  { BackwardMove, 50 },
+  { RightMove, 50 }
+};
+//Preset motion durations
+#pragma endregion
 
 //All 16 mux keys
 enum InputKey {
@@ -171,12 +321,12 @@ void setup() {
   pinMode(motorB1, OUTPUT);
   pinMode(motorB2, OUTPUT);
 
-  pinMode(enterValueLed, OUTPUT);      //A0 green
-  pinMode(enterDirectionLed, OUTPUT);  //A1 blue
+  pinMode(enterValueLed, OUTPUT);      //A0 blue
+  pinMode(enterDirectionLed, OUTPUT);  //A1 green
   pinMode(clearDataLed, OUTPUT);       //A2 red
 
   //LED winkers
-  pinMode(BackwardMovePin, OUTPUT);
+  pinMode(LeftPin, OUTPUT);
   pinMode(RightPin, OUTPUT);
 
   //stop tail lights
@@ -191,7 +341,7 @@ void setup() {
   pinMode(engineerModeLed, OUTPUT);
 
   //mux SIG input
-  pinMode(muxSignalPin, INPUT);
+  pinMode(muxSigDataPin, INPUT);
   // Serial port initialization.
   Serial.begin(9600);
 
@@ -202,14 +352,14 @@ void setup() {
 
 void SetEngineerModeLed() {
   if (EngineerMode) {
-    if (digitalRead(engineerModeLed) == HIGH) {
-      digitalWrite(engineerModeLed, LOW);
-    }
-
+    digitalWrite(engineerModeLed, HIGH);
+    Serial.print("ENGINEER MODE ON");
+    delay(100);
   } else {
-    if (digitalRead(engineerModeLed) == LOW) {
-      digitalWrite(engineerModeLed, HIGH);
-    }
+    digitalWrite(engineerModeLed, LOW);
+
+    Serial.print("ENGINEER MODE OFF");
+    delay(100);
   }
 
   if (ClearData) {
@@ -221,14 +371,12 @@ void SetEngineerModeLed() {
 
 void loop() {
 
-  SetEngineerModeLed();
   FlashTurnLights();
 
   RunMotor();
 
   if (EngineerMode) {
     /*ENGINEER MODE*/
-
     if (programmingMode) {
       digitalWrite(enterDirectionLed, HIGH);
       //digitalWrite(enterValueLed, HIGH);
@@ -265,7 +413,8 @@ void loop() {
                 //Advance program step
                 step++;
               } else if (pressedButton == Mode) {
-                EngineerMode = !EngineerMode;
+                EngineerMode = false;
+                SetEngineerModeLed();
               }
               //10=Clear, 11=Enter
               else if (pressedButton == ClearBtn) {
@@ -313,20 +462,119 @@ void loop() {
             pressedButton = i;
             Serial.print(pressedButton);
             //0-9 NUMBERS
-            if (pressedButton < Mode) {
+            if (pressedButton < Mode && pressedButton >= 0) {
               //Assign programmed motion value
-              int motionType = BackwardMove;
-              for (int j = 0; j < 10; j++) {
-                StepMoves[j] = motionType;
-                motionType++;
-                if (motionType > LeftMove) {
-                  motionType = BackwardMove;
+              if (pressedButton == 0) {
+                //Preset 1
+                for (int j = 0; j < 9; j++) {
+                  StepMoves[presetStep] = preset_one[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_one[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
                 }
-                StepTones[j] = melody[j];
-                StepDurations[j] = 100;
+              } else if (pressedButton == 1) {
+                //Preset 2
+                for (int j = 0; j < 8; j++) {
+                  StepMoves[presetStep] = preset_two[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_two[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 2) {
+                //Preset 3
+                for (int j = 0; j < 12; j++) {
+                  StepMoves[presetStep] = preset_three[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_three[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 3) {
+                //Preset 4
+                for (int j = 0; j < 12; j++) {
+                  StepMoves[presetStep] = preset_four[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_four[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 4) {
+                //Preset 5
+                for (int j = 0; j < 3; j++) {
+                  StepMoves[presetStep] = preset_five[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_five[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 5) {
+                //Preset 6
+                for (int j = 0; j < 8; j++) {
+                  StepMoves[presetStep] = preset_six[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_six[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 6) {
+                //Preset 7
+                for (int j = 0; j < 10; j++) {
+                  StepMoves[presetStep] = preset_seven[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_seven[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 7) {
+                //Preset 8
+                for (int j = 0; j < 20; j++) {
+                  StepMoves[presetStep] = preset_eight[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_eight[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
+              } else if (pressedButton == 8) {
+                //Preset 9
+                for (int j = 0; j < 10; j++) {
+                  StepMoves[presetStep] = preset_nine[j].motion;
+                  StepTones[presetStep] = melody[j];
+                  StepDurations[presetStep] = preset_nine[j].duration;
+                  presetStep++;
+                  if (presetStep >= TotalStepCount) {
+                    break;
+                  }
+                }
               }
+
+              digitalWrite(enterValueLed, HIGH);
+              delay(100);
+              digitalWrite(enterValueLed, LOW);
+              pressedButton = -1;
             } else if (pressedButton == Mode) {
-              EngineerMode = !EngineerMode;
+
+              Serial.print("ENGINEER MODE ON    ");
+              EngineerMode = true;
+              SetEngineerModeLed();
+              ClearSteps();
             }
             //10=Clear, 11=Enter
             else if (pressedButton == ClearBtn) {
@@ -336,6 +584,11 @@ void loop() {
               //anytime Enter is pressed, the car starts executing the program
               //Start move
               runningStep = 0;
+              Serial.println(presetStep);
+              for (int k = presetStep; k < 128; k++) {
+                StepMoves[k] = -1;
+              }
+              presetStep = 0;
               WaitForUserInput = false;
               programmingMode = false;  //not related to this section of MODE. Only relevant to EngineerMode
               HeadLights = true;
@@ -352,9 +605,10 @@ void loop() {
   }
 }
 
+
 void RunMotor() {
   if (!WaitForUserInput) {
-    if (runningStep < TotalStepCount && StepMoves[runningStep] >= 0) {
+    if (runningStep < TotalStepCount && StepMoves[runningStep] > 0) {
       switch (StepMoves[runningStep]) {
         case BackwardMove:
           GoBackward();
@@ -381,7 +635,7 @@ void RunMotor() {
       }
     } else {
       runningStep = TotalStepCount;
-      programmingMode = true;
+      programmingMode = false;
       WaitForUserInput = true;
       startTime = millis();
 
@@ -430,6 +684,25 @@ void PlayInitTone() {
 
 void FlashTurnLights() {
   //rightTurn
+  elapsedWink = millis() - startWink;
+  if (elapsedWink >= 100) {
+    if (rightTurn) {
+      startWink = millis();
+      if (digitalRead(RightPin) == HIGH) {
+        digitalWrite(RightPin, LOW);
+      } else {
+        digitalWrite(RightPin, HIGH);
+      }
+    }
+    if (leftTurn) {
+      startWink = millis();
+      if (digitalRead(LeftPin) == HIGH) {
+        digitalWrite(LeftPin, LOW);
+      } else {
+        digitalWrite(LeftPin, HIGH);
+      }
+    }
+  }
 
   if (HeadLights) {
     digitalWrite(headLightsPin, HIGH);
@@ -449,8 +722,6 @@ void FlashStopLights() {
 }
 
 void TurnRight() {
-  digitalWrite(stopLigtsPin, LOW);
-
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
   int dur = waitInterval;
@@ -486,7 +757,6 @@ void TurnRight() {
   RightSignal = true;
 }
 void TurnLeft() {
-  digitalWrite(BackwardMovePin, HIGH);
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
   int dur = waitInterval;
@@ -604,11 +874,17 @@ void StopMoving() {
 //clear steps
 void ClearSteps() {
   for (int i = 0; i < TotalStepCount; i++) {
-    StepMoves[i] = -1;
-    StepDurations[i] = -1;
-    StepTones[i] = -1;
+    StepMoves[i] = 0;
+    StepDurations[i] = 0;
+    StepTones[i] = 0;
   }
+
+  runningStep = 0;
+  presetStep = 0;
   HeadLights = false;
+  leftTurn = false;
+  rightTurn = false;
+  stopLightOn = false;
   digitalWrite(clearDataLed, HIGH);
   PlayTone(NOTE_A5);
   delay(200);
