@@ -64,8 +64,8 @@ bool ClearData = false;
 #define engineerModeLed 5
 
 
-#define enterValueLed A0
-#define enterDirectionLed A1
+#define enterDirectionLed A0
+#define enterDurationLed A1
 #define clearDataLed A2
 
 //music tone pause?
@@ -79,10 +79,10 @@ int step = 0;
 //Move
 enum Direction {
   Stop = 9,
-  BackwardMove = 12,
-  ForwardMove,
+  ForwardMove = 12,
+  LeftMove,
   RightMove,
-  LeftMove
+  BackwardMove
 };
 
 //PRESET DATA START
@@ -390,8 +390,8 @@ void setup() {
   pinMode(motorB1, OUTPUT);
   pinMode(motorB2, OUTPUT);
 
-  pinMode(enterValueLed, OUTPUT);      //A0 blue
-  pinMode(enterDirectionLed, OUTPUT);  //A1 green
+  pinMode(enterDirectionLed, OUTPUT);  //A0 blue
+  pinMode(enterDurationLed, OUTPUT);   //A1 green
   pinMode(clearDataLed, OUTPUT);       //A2 red
 
   //LED winkers
@@ -417,6 +417,9 @@ void setup() {
   PlayInitTone();
   delay(300);
   ClearSteps();
+
+  //Green LED to indicate input range of 1-9
+  digitalWrite(enterDurationLed, HIGH);
 }
 
 void SetEngineerModeLed() {
@@ -426,8 +429,9 @@ void SetEngineerModeLed() {
     delay(100);
   } else {
     digitalWrite(engineerModeLed, LOW);
-
     Serial.print("ENGINEER MODE OFF");
+    //Green LED to indicate input range of 1-9
+    digitalWrite(enterDurationLed, HIGH);
     delay(100);
   }
 
@@ -450,8 +454,10 @@ void loop() {
 
     //SET Led state for programming mode
     if (moveDirectionExpected) {
+      digitalWrite(enterDurationLed, LOW);
       digitalWrite(enterDirectionLed, HIGH);
     } else {
+      digitalWrite(enterDurationLed, HIGH);
       digitalWrite(enterDirectionLed, LOW);
     }
 
@@ -653,9 +659,9 @@ void loop() {
                 }
               }
 
-              digitalWrite(enterValueLed, HIGH);
+              digitalWrite(enterDurationLed, LOW);
               delay(100);
-              digitalWrite(enterValueLed, LOW);
+              digitalWrite(enterDurationLed, HIGH);
               pressedButton = -1;
             } else if (pressedButton == Mode) {
 
@@ -700,8 +706,8 @@ void CountDownTimer() {
     digitalWrite(stopLigtsPin, HIGH);
     digitalWrite(rightPin, HIGH);
     digitalWrite(leftPin, HIGH);
+    digitalWrite(enterDurationLed, HIGH);
     digitalWrite(enterDirectionLed, HIGH);
-    digitalWrite(enterValueLed, HIGH);
     digitalWrite(engineerModeLed, HIGH);
     digitalWrite(clearDataLed, HIGH);
     PlayTone(NOTE_C5);
@@ -710,8 +716,8 @@ void CountDownTimer() {
     digitalWrite(stopLigtsPin, LOW);
     digitalWrite(rightPin, LOW);
     digitalWrite(leftPin, LOW);
+    digitalWrite(enterDurationLed, LOW);
     digitalWrite(enterDirectionLed, LOW);
-    digitalWrite(enterValueLed, LOW);    
     digitalWrite(engineerModeLed, EngineerMode);
     digitalWrite(clearDataLed, LOW);
     noTone(speakerPin);
@@ -902,11 +908,10 @@ void TurnLeft() {
   leftTurn = true;
   for (int i = 0; i < duration; i++) {
     FlashTurnLights();
-    //ON
     digitalWrite(motorA1, HIGH);
     digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, HIGH);
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
     delay(10);
     //OFF
     digitalWrite(motorA1, LOW);
@@ -937,8 +942,9 @@ void GoForward() {
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, HIGH);
+    //ON
+    digitalWrite(motorA1, HIGH);
+    digitalWrite(motorA2, LOW);
     digitalWrite(motorB1, LOW);
     digitalWrite(motorB2, HIGH);
     delay(10);
@@ -975,10 +981,10 @@ void GoBackward() {
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, HIGH);
-    digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, HIGH);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, HIGH);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, HIGH);
     delay(10);
     //OFF
     digitalWrite(motorA1, LOW);
