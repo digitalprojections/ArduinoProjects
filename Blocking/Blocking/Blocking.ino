@@ -86,6 +86,7 @@ enum Direction {
   LeftMove
 };
 
+//PRESET DATA START
 #pragma region PRESET MOTIONS
 //Presets
 enum Preset {
@@ -100,7 +101,7 @@ enum Preset {
   PRESET_9
 };
 
-//Motion Model
+//Motion Model. Used by both preset and program modes
 typedef struct {
   int motion, duration;
 } motionModel;
@@ -287,6 +288,7 @@ motionModel preset_nine[] = {
 };
 //Preset motion durations
 #pragma endregion
+//PRESET DATA END
 
 //All 16 mux keys
 enum InputKey {
@@ -320,6 +322,15 @@ int InitDurations[] = {
   2, 2
 };
 #pragma endregion
+
+//Start tone
+int startMelody[] = {
+  NOTE_AS5, NOTE_A5, NOTE_G5, NOTE_F6, NOTE_C6
+};
+int startDurations[] = {
+  8, 8, 8, 2, 4
+};
+//Start tone end
 
 #pragma region FULL Melody
 
@@ -434,27 +445,20 @@ void loop() {
 
   RunMotor();
 
+
   if (EngineerMode) {
     /*ENGINEER MODE*/
+
+    //SET Led state for programming mode
     if (programmingMode) {
       digitalWrite(enterDirectionLed, HIGH);
-      //digitalWrite(enterValueLed, HIGH);
-      //digitalWrite(clearDataLed, HIGH);
     } else {
       digitalWrite(enterDirectionLed, LOW);
-      //digitalWrite(enterValueLed, LOW);
-      //digitalWrite(clearDataLed, LOW);
     }
 
+    //timeout between button clicks
     elapsedTime = millis() - startTime;
-    if (!programmingMode) {
-      if (elapsedTime > 1000 && runningStep < TotalStepCount) {
-        startTime = millis();
-        Serial.print("step: ");
-        Serial.println(runningStep);
-        PlayTone(StepTones[runningStep]);
-      }
-    } else {
+    if (programmingMode) {
       if (elapsedTime > 100) {
         byte data;
         for (byte i = 0; i < mux.channelCount(); i++) {
@@ -466,7 +470,7 @@ void loop() {
               //0-9 NUMBERS
               if (pressedButton < Mode) {
                 //Assign programmed motion value
-                StepMoves[step] = i * 500;
+                StepMoves[step] = (i * 10) + 50;
                 StepTones[step] = melody[i];
                 PlayTone(melody[pressedButton]);
                 //Advance program step
@@ -483,6 +487,7 @@ void loop() {
               } else if (pressedButton == EnterBtn) {
                 //anytime Enter is pressed, the car starts executing the program
                 //Start move
+                CountDownTimer();
                 programmingMode = false;
               }
               //12-15 DIRECTIONS, BackwardMove, DOWN, UP, RIGHT respectively
@@ -523,7 +528,7 @@ void loop() {
             //0-9 NUMBERS
             if (pressedButton < Mode && pressedButton >= 0) {
               //Assign programmed motion value
-              if (pressedButton == 0) {
+              if (pressedButton == PRESET_1) {
                 //Preset 1
                 int sizeOfArray = sizeof(preset_one);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -536,7 +541,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 1) {
+              } else if (pressedButton == PRESET_2) {
                 //Preset 2
                 int sizeOfArray = sizeof(preset_two);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -549,7 +554,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 2) {
+              } else if (pressedButton == PRESET_3) {
                 //Preset 3
                 int sizeOfArray = sizeof(preset_three);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -562,7 +567,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 3) {
+              } else if (pressedButton == PRESET_4) {
                 //Preset 4
                 int sizeOfArray = sizeof(preset_four);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -575,7 +580,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 4) {
+              } else if (pressedButton == PRESET_5) {
                 //Preset 5
                 int sizeOfArray = sizeof(preset_five);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -588,7 +593,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 5) {
+              } else if (pressedButton == PRESET_6) {
                 //Preset 6
                 int sizeOfArray = sizeof(preset_six);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -601,7 +606,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 6) {
+              } else if (pressedButton == PRESET_7) {
                 //Preset 7
                 int sizeOfArray = sizeof(preset_seven);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -614,7 +619,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 7) {
+              } else if (pressedButton == PRESET_8) {
                 //Preset 8
                 int sizeOfArray = sizeof(preset_eight);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -627,7 +632,7 @@ void loop() {
                     break;
                   }
                 }
-              } else if (pressedButton == 8) {
+              } else if (pressedButton == PRESET_9) {
                 //Preset 9
                 int sizeOfArray = sizeof(preset_nine);
                 int sizeOfPreset = sizeOfArray / sizeof(motionModel);
@@ -666,6 +671,7 @@ void loop() {
                 StepMoves[k] = -1;
               }
               presetStep = 0;
+              CountDownTimer();
               WaitForUserInput = false;
               programmingMode = false;  //not related to this section of MODE. Only relevant to EngineerMode
               HeadLights = true;
@@ -682,6 +688,34 @@ void loop() {
   }
 }
 
+void CountDownTimer() {
+  //three beeps
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(headLightsPin, HIGH);
+    digitalWrite(stopLigtsPin, HIGH);
+    digitalWrite(rightPin, HIGH);
+    digitalWrite(leftPin, HIGH);
+    digitalWrite(enterDirectionLed, HIGH);
+    digitalWrite(enterValueLed, HIGH);
+    digitalWrite(engineerModeLed, HIGH);
+    digitalWrite(clearDataLed, HIGH);
+    PlayTone(NOTE_C5);
+    delay(100);
+    digitalWrite(headLightsPin, LOW);
+    digitalWrite(stopLigtsPin, LOW);
+    digitalWrite(rightPin, LOW);
+    digitalWrite(leftPin, LOW);
+    digitalWrite(enterDirectionLed, LOW);
+    digitalWrite(enterValueLed, LOW);
+    digitalWrite(engineerModeLed, LOW);
+    digitalWrite(clearDataLed, LOW);
+    noTone(speakerPin);
+    delay(500);
+  }
+  //final tone before start
+  PlayStartTune();
+  delay(300);
+}
 
 void RunMotor() {
   if (!WaitForUserInput) {
@@ -754,6 +788,24 @@ void PlayInitTone() {
       noTone(speakerPin);
       initialized = true;
     }
+  }
+}
+
+void PlayStartTune() {
+  int size = sizeof(startDurations) / sizeof(int);
+
+  for (int note = 0; note < size; note++) {
+    //to calculate the note duration, take one second divided by the note type.
+    //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+    int duration = 1000 / startDurations[note];
+    tone(speakerPin, startMelody[note], duration);
+
+    //to distinguish the notes, set a minimum time between them.
+    //the note's duration + 30% seems to work well:
+    int pauseBetweenNotes = duration * 0.30;
+    delay(pauseBetweenNotes);
+    //stop the tone playing:
+    noTone(speakerPin);
   }
 }
 #pragma endregion
@@ -943,7 +995,7 @@ void GoBackward() {
     }
     BackwardMoveSignal = true;
   }
-  
+
   StopMoving();
 }
 void StopMoving() {
