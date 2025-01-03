@@ -38,12 +38,11 @@ int presetStep = 0;
 int waitInterval = 30;  //it controls the acceleration and deceleration
 //bool engineStop = true;
 
-//direction flag to flash the turn signals. The same method is used to flash either or both winkers
-bool RightSignal = false;
+//backward (white LEDs)
 bool BackwardMoveSignal = false;
 //turn signals
-bool leftTurn = false;
 bool rightTurn = false;
+bool leftTurn = false;
 //STOP, brakes hit
 bool stopLightOn = false;
 //headlights
@@ -59,8 +58,8 @@ bool ClearData = false;
 
 #define stopLigtsPin A3
 //LED winkers
-#define LeftPin A4
-#define RightPin A5
+#define rightPin A4
+#define leftPin A5
 
 #define headLightsPin 4
 #define engineerModeLed 5
@@ -110,12 +109,12 @@ typedef struct {
 motionModel preset_one[] = {
   { ForwardMove, 100 },
   { BackwardMove, 100 },
-  { LeftMove, 50 },
+  { LeftMove, 150 },
   { ForwardMove, 100 },
   { BackwardMove, 100 },
-  { RightMove, 50 },
+  { RightMove, 150 },
   { ForwardMove, 100 },
-  { RightMove, 50 },
+  { RightMove, 150 },
   { BackwardMove, 100 }
 };
 
@@ -123,8 +122,14 @@ motionModel preset_two[] = {
   { RightMove, 100 },
   { ForwardMove, 100 },
   { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
   { ForwardMove, 100 },
   { BackwardMove, 100 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
   { LeftMove, 50 },
   { LeftMove, 50 },
   { BackwardMove, 100 }
@@ -133,36 +138,75 @@ motionModel preset_two[] = {
 motionModel preset_three[] = {
   { ForwardMove, 50 },
   { RightMove, 80 },
-  { ForwardMove, 50 },
+  { RightMove, 80 },
   { RightMove, 80 },
   { ForwardMove, 50 },
   { RightMove, 80 },
-  { ForwardMove, 50 },
+  { RightMove, 80 },
   { RightMove, 80 },
   { ForwardMove, 50 },
   { RightMove, 80 },
+  { RightMove, 80 },
+  { RightMove, 80 },
   { ForwardMove, 50 },
+  { RightMove, 80 },
+  { RightMove, 80 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { RightMove, 80 },
+  { RightMove, 80 },
+  { ForwardMove, 50 },
+  { RightMove, 80 },
+  { RightMove, 80 },
   { RightMove, 80 }
 };
 
 motionModel preset_four[] = {
   { ForwardMove, 80 },
   { LeftMove, 50 },
-  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
   { LeftMove, 50 },
   { ForwardMove, 80 },
   { LeftMove, 50 },
-  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
   { LeftMove, 50 },
   { ForwardMove, 80 },
   { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
   { ForwardMove, 80 },
   { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { ForwardMove, 80 },
+  { LeftMove, 50 },
+  { LeftMove, 50 },
+  { LeftMove, 50 }
 };
 
 motionModel preset_five[] = {
   { ForwardMove, 100 },
-  { RightMove, 150 },
+  { RightMove, 50 },
+  { RightMove, 50 },
+  { RightMove, 50 },
+  { RightMove, 50 },
+  { RightMove, 50 },
+  { RightMove, 50 },
+  { RightMove, 50 },
+  { RightMove, 50 },
   { ForwardMove, 100 }
 };
 
@@ -171,6 +215,14 @@ motionModel preset_six[] = {
   { RightMove, 50 },
   { ForwardMove, 50 },
   { LeftMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
   { ForwardMove, 50 },
   { RightMove, 50 },
   { ForwardMove, 50 },
@@ -201,7 +253,14 @@ motionModel preset_eight[] = {
   { RightMove, 50 },
   { ForwardMove, 50 },
   { RightMove, 50 },
-
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
+  { ForwardMove, 50 },
+  { RightMove, 50 },
   { ForwardMove, 50 },
   { LeftMove, 50 },
   { ForwardMove, 50 },
@@ -326,8 +385,8 @@ void setup() {
   pinMode(clearDataLed, OUTPUT);       //A2 red
 
   //LED winkers
-  pinMode(LeftPin, OUTPUT);
-  pinMode(RightPin, OUTPUT);
+  pinMode(rightPin, OUTPUT);
+  pinMode(leftPin, OUTPUT);
 
   //stop tail lights
   pinMode(stopLigtsPin, OUTPUT);
@@ -466,7 +525,9 @@ void loop() {
               //Assign programmed motion value
               if (pressedButton == 0) {
                 //Preset 1
-                for (int j = 0; j < 9; j++) {
+                int sizeOfArray = sizeof(preset_one);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_one[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_one[j].duration;
@@ -477,7 +538,9 @@ void loop() {
                 }
               } else if (pressedButton == 1) {
                 //Preset 2
-                for (int j = 0; j < 8; j++) {
+                int sizeOfArray = sizeof(preset_two);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_two[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_two[j].duration;
@@ -488,7 +551,9 @@ void loop() {
                 }
               } else if (pressedButton == 2) {
                 //Preset 3
-                for (int j = 0; j < 12; j++) {
+                int sizeOfArray = sizeof(preset_three);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_three[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_three[j].duration;
@@ -499,7 +564,9 @@ void loop() {
                 }
               } else if (pressedButton == 3) {
                 //Preset 4
-                for (int j = 0; j < 12; j++) {
+                int sizeOfArray = sizeof(preset_four);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_four[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_four[j].duration;
@@ -510,7 +577,9 @@ void loop() {
                 }
               } else if (pressedButton == 4) {
                 //Preset 5
-                for (int j = 0; j < 3; j++) {
+                int sizeOfArray = sizeof(preset_five);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_five[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_five[j].duration;
@@ -521,7 +590,9 @@ void loop() {
                 }
               } else if (pressedButton == 5) {
                 //Preset 6
-                for (int j = 0; j < 8; j++) {
+                int sizeOfArray = sizeof(preset_six);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_six[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_six[j].duration;
@@ -532,7 +603,9 @@ void loop() {
                 }
               } else if (pressedButton == 6) {
                 //Preset 7
-                for (int j = 0; j < 10; j++) {
+                int sizeOfArray = sizeof(preset_seven);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_seven[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_seven[j].duration;
@@ -543,7 +616,9 @@ void loop() {
                 }
               } else if (pressedButton == 7) {
                 //Preset 8
-                for (int j = 0; j < 20; j++) {
+                int sizeOfArray = sizeof(preset_eight);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_eight[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_eight[j].duration;
@@ -554,7 +629,9 @@ void loop() {
                 }
               } else if (pressedButton == 8) {
                 //Preset 9
-                for (int j = 0; j < 10; j++) {
+                int sizeOfArray = sizeof(preset_nine);
+                int sizeOfPreset = sizeOfArray / sizeof(motionModel);
+                for (int j = 0; j < sizeOfPreset; j++) {
                   StepMoves[presetStep] = preset_nine[j].motion;
                   StepTones[presetStep] = melody[j];
                   StepDurations[presetStep] = preset_nine[j].duration;
@@ -640,7 +717,6 @@ void RunMotor() {
       startTime = millis();
 
       StopMoving();
-      RightSignal = false;
       BackwardMoveSignal = false;
       HeadLights = false;
       stopLightOn = false;
@@ -683,24 +759,28 @@ void PlayInitTone() {
 #pragma endregion
 
 void FlashTurnLights() {
-  //rightTurn
+  //leftTurn
   elapsedWink = millis() - startWink;
   if (elapsedWink >= 100) {
-    if (rightTurn) {
-      startWink = millis();
-      if (digitalRead(RightPin) == HIGH) {
-        digitalWrite(RightPin, LOW);
-      } else {
-        digitalWrite(RightPin, HIGH);
-      }
-    }
     if (leftTurn) {
       startWink = millis();
-      if (digitalRead(LeftPin) == HIGH) {
-        digitalWrite(LeftPin, LOW);
+      if (digitalRead(leftPin) == HIGH) {
+        digitalWrite(leftPin, LOW);
       } else {
-        digitalWrite(LeftPin, HIGH);
+        digitalWrite(leftPin, HIGH);
       }
+    } else {
+      digitalWrite(leftPin, LOW);
+    }
+    if (rightTurn) {
+      startWink = millis();
+      if (digitalRead(rightPin) == HIGH) {
+        digitalWrite(rightPin, LOW);
+      } else {
+        digitalWrite(rightPin, HIGH);
+      }
+    } else {
+      digitalWrite(rightPin, LOW);
     }
   }
 
@@ -725,7 +805,10 @@ void TurnRight() {
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
   int dur = waitInterval;
+  leftTurn = false;
+  rightTurn = true;
   for (int i = 0; i < duration; i++) {
+    FlashTurnLights();
     //ON
     digitalWrite(motorA1, LOW);
     digitalWrite(motorA2, HIGH);
@@ -753,14 +836,15 @@ void TurnRight() {
   }
 
   StopMoving();
-
-  RightSignal = true;
 }
 void TurnLeft() {
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
   int dur = waitInterval;
+  rightTurn = false;
+  leftTurn = true;
   for (int i = 0; i < duration; i++) {
+    FlashTurnLights();
     //ON
     digitalWrite(motorA1, HIGH);
     digitalWrite(motorA2, LOW);
@@ -788,8 +872,6 @@ void TurnLeft() {
   }
 
   StopMoving();
-
-  RightSignal = false;
 }
 void GoForward() {
   BackwardMoveSignal = false;
@@ -861,6 +943,8 @@ void GoBackward() {
     }
     BackwardMoveSignal = true;
   }
+  
+  StopMoving();
 }
 void StopMoving() {
   digitalWrite(motorA1, LOW);
@@ -869,6 +953,9 @@ void StopMoving() {
   digitalWrite(motorB2, LOW);
   BackwardMoveSignal = false;
   digitalWrite(stopLigtsPin, HIGH);
+  rightTurn = leftTurn = false;
+  digitalWrite(rightPin, LOW);
+  digitalWrite(leftPin, LOW);
 }
 
 //clear steps
@@ -882,8 +969,8 @@ void ClearSteps() {
   runningStep = 0;
   presetStep = 0;
   HeadLights = false;
-  leftTurn = false;
   rightTurn = false;
+  leftTurn = false;
   stopLightOn = false;
   digitalWrite(clearDataLed, HIGH);
   PlayTone(NOTE_A5);
