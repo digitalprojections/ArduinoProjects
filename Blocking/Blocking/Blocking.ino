@@ -29,8 +29,7 @@ int elapsedMove;
 
 int pressedButton = -1;
 
-//two states: running and programming
-bool programmingMode = true;
+bool moveDirectionExpected = true;
 
 int const TotalStepCount = 128;
 int runningStep = 0;
@@ -49,7 +48,7 @@ bool stopLightOn = false;
 bool HeadLights = false;
 
 bool EngineerMode = false;
-bool WaitForUserInput = true;
+bool WaitForUserInput = true;  //run or wait for input
 
 bool ClearData = false;
 
@@ -450,7 +449,7 @@ void loop() {
     /*ENGINEER MODE*/
 
     //SET Led state for programming mode
-    if (programmingMode) {
+    if (moveDirectionExpected) {
       digitalWrite(enterDirectionLed, HIGH);
     } else {
       digitalWrite(enterDirectionLed, LOW);
@@ -458,7 +457,7 @@ void loop() {
 
     //timeout between button clicks
     elapsedTime = millis() - startTime;
-    if (programmingMode) {
+    if (WaitForUserInput) {
       if (elapsedTime > 100) {
         byte data;
         for (byte i = 0; i < mux.channelCount(); i++) {
@@ -466,47 +465,53 @@ void loop() {
           if (data == LOW) {
             pressedButton = i;
             Serial.println(i);
+
+            //Clear action works unconditionally
+            if (pressedButton == ClearBtn) {
+              //Reset
+              step = 0;
+              ClearSteps();
+            }
+
+            if (pressedButton == Mode) {
+              EngineerMode = false;
+              SetEngineerModeLed();
+            }
+            if (moveDirectionExpected && pressedButton == EnterBtn) {
+              //anytime Enter is pressed, the car starts executing the program
+              //Start move
+              CountDownTimer();
+              WaitForUserInput = false;
+              step = 0;
+              return;
+            }
+
             if (step < TotalStepCount) {
-              //0-9 NUMBERS
-              if (pressedButton < Mode) {
-                //Assign programmed motion value
-                StepMoves[step] = (i * 10) + 50;
-                StepTones[step] = melody[i];
-                PlayTone(melody[pressedButton]);
-                //Advance program step
-                step++;
-              } else if (pressedButton == Mode) {
-                EngineerMode = false;
-                SetEngineerModeLed();
-              }
-              //10=Clear, 11=Enter
-              else if (pressedButton == ClearBtn) {
-                //Reset
-                step = 0;
-                ClearSteps();
-              } else if (pressedButton == EnterBtn) {
-                //anytime Enter is pressed, the car starts executing the program
-                //Start move
-                CountDownTimer();
-                programmingMode = false;
-              }
-              //12-15 DIRECTIONS, BackwardMove, DOWN, UP, RIGHT respectively
-              else {
-                //Assign programmed motion value as is, 12 to 16
-                StepMoves[step] = i;
-                StepTones[step] = melody[i];
-                PlayTone(melody[pressedButton]);
-                //Advance program step
-                step++;
+              //Forward, backward, right, left
+              if (moveDirectionExpected) {
+                //12-15 DIRECTIONS, BackwardMove, DOWN, UP, RIGHT respectively
+                if (pressedButton > EnterBtn) {
+                  StepMoves[step] = pressedButton;
+                  StepTones[step] = melody[pressedButton];
+                  //Assign programmed motion value as is, 12 to 16
+                  PlayTone(melody[pressedButton]);
+                  moveDirectionExpected = false;
+                }
+              } else {
+                //values between 1-9
+                if (pressedButton < Mode) {
+                  //Assign programmed motion value
+                  StepDurations[step] = (pressedButton * 10) + 50;
+                  StepTones[step] = melody[pressedButton];
+                  PlayTone(melody[pressedButton]);
+                  moveDirectionExpected = true;
+                  //Advance program step
+                  step++;
+                }
               }
             } else {
-              if (pressedButton == EnterBtn)
-                pressedButton = -1;
-              //Start move
-              programmingMode = false;
-              step = 0;
+              //step overflow. Ignore?
             }
-            //next input OK
           }
         }
         startTime = millis();
@@ -514,6 +519,7 @@ void loop() {
       }
     }
   } else {
+    digitalWrite(enterDirectionLed, LOW);
     /*EngineerMode FALSE, "ToyMode", Preset MODE*/
     //user input expected
     if (WaitForUserInput) {
@@ -673,7 +679,6 @@ void loop() {
               presetStep = 0;
               CountDownTimer();
               WaitForUserInput = false;
-              programmingMode = false;  //not related to this section of MODE. Only relevant to EngineerMode
               HeadLights = true;
               digitalWrite(stopLigtsPin, LOW);
             }
@@ -706,8 +711,8 @@ void CountDownTimer() {
     digitalWrite(rightPin, LOW);
     digitalWrite(leftPin, LOW);
     digitalWrite(enterDirectionLed, LOW);
-    digitalWrite(enterValueLed, LOW);
-    digitalWrite(engineerModeLed, LOW);
+    digitalWrite(enterValueLed, LOW);    
+    digitalWrite(engineerModeLed, EngineerMode);
     digitalWrite(clearDataLed, LOW);
     noTone(speakerPin);
     delay(500);
@@ -746,8 +751,8 @@ void RunMotor() {
       }
     } else {
       runningStep = TotalStepCount;
-      programmingMode = false;
       WaitForUserInput = true;
+      moveDirectionExpected = true;
       startTime = millis();
 
       StopMoving();
