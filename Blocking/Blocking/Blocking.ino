@@ -448,6 +448,25 @@ void loop() {
 
   RunMotor();
 
+//Cancel function
+  if(!WaitForUserInput)
+{
+  byte data;
+        for (byte i = 0; i < mux.channelCount(); i++) {
+          data = mux.read(i) /* Reads from channel i (returns HIGH or LOW) */;
+          if (data == LOW) {
+            pressedButton = i;            
+            //10=Clear, 11=Enter
+            if (pressedButton == ClearBtn) {
+              //Reset
+              ClearSteps();
+              WaitForUserInput = true;
+            } 
+          }
+        }
+}
+//Cancel function end
+
 
   if (EngineerMode) {
     /*ENGINEER MODE*/
