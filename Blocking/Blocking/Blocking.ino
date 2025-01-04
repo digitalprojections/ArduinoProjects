@@ -79,10 +79,10 @@ int step = 0;
 //Move
 enum Direction {
   Stop = 9,
-  ForwardMove = 12,
-  LeftMove,
-  RightMove,
-  BackwardMove
+  LeftMove=12,
+  BackwardMove=13,
+  RightMove=14,
+  ForwardMove = 15,
 };
 
 //PRESET DATA START
@@ -882,7 +882,7 @@ void FlashStopLights() {
     stopLightOn = true;
   }
 }
-
+//go right
 void TurnRight() {
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
@@ -919,6 +919,7 @@ void TurnRight() {
 
   StopMoving();
 }
+
 void TurnLeft() {
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
@@ -927,10 +928,11 @@ void TurnLeft() {
   leftTurn = true;
   for (int i = 0; i < duration; i++) {
     FlashTurnLights();
+    //ON
     digitalWrite(motorA1, HIGH);
     digitalWrite(motorA2, LOW);
-    digitalWrite(motorB1, HIGH);
-    digitalWrite(motorB2, LOW);
+    digitalWrite(motorB1, LOW);
+    digitalWrite(motorB2, HIGH);
     delay(10);
     //OFF
     digitalWrite(motorA1, LOW);
@@ -954,18 +956,18 @@ void TurnLeft() {
 
   StopMoving();
 }
+//go left
 void GoForward() {
   BackwardMoveSignal = false;
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
-    //ON
-    //ON
-    digitalWrite(motorA1, HIGH);
-    digitalWrite(motorA2, LOW);
+    //ON    
+    digitalWrite(motorA1, LOW);
+    digitalWrite(motorA2, HIGH);
     digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, HIGH);
+    digitalWrite(motorB2, HIGH);    
     delay(10);
     //OFF
     digitalWrite(motorA1, LOW);
@@ -994,16 +996,17 @@ void GoForward() {
   // StepMoves[runningStep] = -1;
   //runningStep++;
 }
+//go forward
 void GoBackward() {
   int duration = StepDurations[runningStep];
   int lastHalfLimit = duration - waitInterval;
   int dur = waitInterval;
   for (int i = 0; i < duration; i++) {
     //ON
-    digitalWrite(motorA1, LOW);
-    digitalWrite(motorA2, HIGH);
-    digitalWrite(motorB1, LOW);
-    digitalWrite(motorB2, HIGH);
+    digitalWrite(motorA1, HIGH);
+    digitalWrite(motorA2, LOW);
+    digitalWrite(motorB1, HIGH);
+    digitalWrite(motorB2, LOW);
     delay(10);
     //OFF
     digitalWrite(motorA1, LOW);
